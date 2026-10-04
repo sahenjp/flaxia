@@ -169,7 +169,15 @@ export async function onRequest(context: Record<string, unknown>) {
     const session = await getSession(env, sessionToken);
     if (!session) return new Response('Unauthorized', { status: 401 });
 
+    const room = await env.DB.prepare('SELECT max_players, host_id FROM multiplayer_rooms WHERE id = ? AND game_id = ?')
+      .bind(roomId, gameId)
+      .first<{ max_players: number; host_id: string }>();
+    if (!room) return new Response('Room not found', { status: 404 });
+
     const forwardUrl = new URL(request.url);
+    forwardUrl.searchParams.delete('token');
+    forwardUrl.searchParams.set('maxPlayers', String(room.max_players));
+    forwardUrl.searchParams.set('hostId', room.host_id);
     forwardUrl.searchParams.set('userId', session.user.id);
     forwardUrl.searchParams.set('username', session.user.username || '');
     forwardUrl.searchParams.set('display_name', session.user.display_name || '');
@@ -177,8 +185,11 @@ export async function onRequest(context: Record<string, unknown>) {
     forwardUrl.searchParams.set('gameId', gameId);
     forwardUrl.searchParams.set('roomId', roomId);
 
+    const forwardHeaders = new Headers(request.headers);
+    forwardHeaders.delete('Cookie');
+    forwardHeaders.delete('Authorization');
     const forwardReq = new Request(forwardUrl.toString(), {
-      headers: request.headers,
+      headers: forwardHeaders,
     });
 
     if (!env.MULTIPLAYER_ROOM) return new Response('Multiplayer not available', { status: 503 });

@@ -2,6 +2,108 @@ import assert from 'node:assert';
 import { beforeEach, describe, it } from 'node:test';
 import { BASE_URL, resetDb, seedUserAndLogin } from './helpers/setup.ts';
 
+function sessionToken(cookie: string): string {
+  const token = /(?:^|;\s*)session=([^;]+)/.exec(cookie)?.[1];
+  assert.ok(token, 'session cookie should contain a token');
+  return decodeURIComponent(token);
+}
+
+function connectMultiplayer(roomId: string, gameId: string, cookie: string, requestedMaxPlayers = 99) {
+  const url = new URL(`${BASE_URL}/api/ws/multiplayer`);
+  url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+  url.searchParams.set('roomId', roomId);
+  url.searchParams.set('gameId', gameId);
+  url.searchParams.set('token', sessionToken(cookie));
+  url.searchParams.set('maxPlayers', String(requestedMaxPlayers));
+
+  const socket = new WebSocket(url);
+  const opened = new Promise<boolean>((resolve) => {
+    let settled = false;
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    const finish = (accepted: boolean) => {
+      if (settled) return;
+      settled = true;
+      if (timeout) clearTimeout(timeout);
+      if (!accepted) {
+        if (socket.readyState === WebSocket.OPEN) socket.close();
+        else if (socket.readyState === WebSocket.CONNECTING)
+          socket.addEventListener('open', () => socket.close(), { once: true });
+      }
+      resolve(accepted);
+    };
+
+    timeout = setTimeout(() => finish(false), 5000);
+    socket.addEventListener('open', () => finish(true), { once: true });
+    socket.addEventListener('error', () => finish(false), { once: true });
+  });
+  return { socket, opened };
+}
+
+async function closeWebSockets(sockets: WebSocket[]): Promise<void> {
+  await Promise.all(
+    sockets
+      .filter((socket) => socket.readyState === WebSocket.OPEN)
+      .map(
+        (socket) =>
+          new Promise<void>((resolve) => {
+            const timeout = setTimeout(resolve, 1000);
+            socket.addEventListener(
+              'close',
+              () => {
+                clearTimeout(timeout);
+                resolve();
+              },
+              { once: true },
+            );
+            socket.close();
+          }),
+      ),
+  );
+}
+
+async function currentUserId(cookie: string): Promise<string> {
+  const res = await fetch(`${BASE_URL}/api/me`, { headers: { Cookie: cookie } });
+  assert.equal(res.status, 200);
+  return ((await res.json()) as { user: { id: string } }).user.id;
+}
+
+function waitForServerMessage(
+  socket: WebSocket,
+  predicate: (data: Record<string, unknown>) => boolean,
+  timeoutMs = 5000,
+): Promise<Record<string, unknown>> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      socket.removeEventListener('message', onMessage);
+      reject(new Error('timed out waiting for server message'));
+    }, timeoutMs);
+    const onMessage = (event: MessageEvent) => {
+      let data: Record<string, unknown>;
+      try {
+        data = JSON.parse(String(event.data)) as Record<string, unknown>;
+      } catch {
+        return;
+      }
+      if (predicate(data)) {
+        clearTimeout(timer);
+        socket.removeEventListener('message', onMessage);
+        resolve(data);
+      }
+    };
+    socket.addEventListener('message', onMessage);
+  });
+}
+
+async function createRoom(cookie: string, gameId: string, maxPlayers: number): Promise<string> {
+  const response = await fetch(`${BASE_URL}/api/multiplayer/rooms`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: cookie },
+    body: JSON.stringify({ gameId, maxPlayers }),
+  });
+  assert.equal(response.status, 201);
+  return ((await response.json()) as { roomId: string }).roomId;
+}
+
 describe('POST /api/multiplayer/rooms', () => {
   beforeEach(resetDb);
 
@@ -59,6 +161,92 @@ describe('POST /api/multiplayer/rooms', () => {
       body: 'not-json',
     });
     assert.equal(res.status, 400);
+  });
+});
+
+describe('WebSocket /api/ws/multiplayer', () => {
+  beforeEach(resetDb);
+
+  it('enforces the D1 room capacity instead of a client-supplied limit', async () => {
+    const host = await seedUserAndLogin('ws-host');
+    const second = await seedUserAndLogin('ws-second');
+    const third = await seedUserAndLogin('ws-third');
+    const fourth = await seedUserAndLogin('ws-fourth');
+    const users = [host, second, third, fourth];
+    const roomId = await createRoom(host.cookie, 'ws-capacity-three', 3);
+    const openSockets: WebSocket[] = [];
+
+    try {
+      for (const [index, user] of users.entries()) {
+        const attempt = connectMultiplayer(roomId, 'ws-capacity-three', user.cookie, 99);
+        const accepted = await attempt.opened;
+        if (accepted) openSockets.push(attempt.socket);
+        assert.equal(accepted, index < 3, `connection ${index + 1} should respect a three-player room`);
+      }
+    } finally {
+      await closeWebSockets(openSockets);
+    }
+  });
+
+  it('keeps the runtime host bound to the recorded room host', async () => {
+    const recordedHost = await seedUserAndLogin('ws-realhost');
+    const earlyBird = await seedUserAndLogin('ws-earlybird');
+    const recordedHostId = await currentUserId(recordedHost.cookie);
+    const earlyBirdId = await currentUserId(earlyBird.cookie);
+    const hostRoomId = await createRoom(recordedHost.cookie, 'ws-host-binding', 2);
+
+    const early = connectMultiplayer(hostRoomId, 'ws-host-binding', earlyBird.cookie, 99);
+    const earlyStatePromise = waitForServerMessage(early.socket, (data) => data.type === 'room_state');
+    assert.equal(await early.opened, true);
+    const earlyState = await earlyStatePromise;
+    try {
+      assert.equal((earlyState.room as { hostId: string }).hostId, recordedHostId);
+      const earlyEntry = (earlyState.players as Array<{ userId: string; isHost: boolean }>).find(
+        (player) => player.userId === earlyBirdId,
+      );
+      assert.ok(earlyEntry, 'the early connection should be listed as a player');
+      assert.equal(earlyEntry.isHost, false);
+
+      early.socket.send(JSON.stringify({ type: 'start_game' }));
+      const denied = await waitForServerMessage(early.socket, (data) => data.type === 'error');
+      assert.equal(denied.code, 'NOT_HOST');
+
+      const late = connectMultiplayer(hostRoomId, 'ws-host-binding', recordedHost.cookie, 99);
+      const lateStatePromise = waitForServerMessage(late.socket, (data) => data.type === 'room_state');
+      assert.equal(await late.opened, true);
+      const lateState = await lateStatePromise;
+      try {
+        const lateEntry = (lateState.players as Array<{ userId: string; isHost: boolean }>).find(
+          (player) => player.userId === recordedHostId,
+        );
+        assert.ok(lateEntry, 'the recorded host should be listed as a player');
+        assert.equal(lateEntry.isHost, true);
+      } finally {
+        await closeWebSockets([late.socket]);
+      }
+    } finally {
+      await closeWebSockets([early.socket]);
+    }
+  });
+
+  it('enforces the D1 room capacity for a single-player room', async () => {
+    const host = await seedUserAndLogin('ws-single-host');
+    const second = await seedUserAndLogin('ws-single-second');
+    const singlePlayerRoomId = await createRoom(host.cookie, 'ws-capacity-one', 1);
+    const singleRoomSockets: WebSocket[] = [];
+    try {
+      const first = connectMultiplayer(singlePlayerRoomId, 'ws-capacity-one', host.cookie, 99);
+      const firstAccepted = await first.opened;
+      if (firstAccepted) singleRoomSockets.push(first.socket);
+      assert.equal(firstAccepted, true);
+
+      const secondAttempt = connectMultiplayer(singlePlayerRoomId, 'ws-capacity-one', second.cookie, 99);
+      const secondAccepted = await secondAttempt.opened;
+      if (secondAccepted) singleRoomSockets.push(secondAttempt.socket);
+      assert.equal(secondAccepted, false, 'a one-player room must reject a second connection');
+    } finally {
+      await closeWebSockets(singleRoomSockets);
+    }
   });
 });
 
@@ -377,6 +565,41 @@ describe('POST /api/multiplayer/matchmaking', () => {
     const data = (await res.json()) as Record<string, unknown>;
     // With only one player in queue, should not match
     assert.equal(data.matched, false);
+  });
+
+  it('does not let an outsider consume queued matches', async () => {
+    const first = await seedUserAndLogin('mm-theft-a');
+    const second = await seedUserAndLogin('mm-theft-b');
+    const outsider = await seedUserAndLogin('mm-theft-c');
+    const gameId = 'mm-theft-game';
+    const join = async (cookie: string) => {
+      const res = await fetch(`${BASE_URL}/api/multiplayer/matchmaking`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: cookie },
+        body: JSON.stringify({ gameId, action: 'join' }),
+      });
+      assert.equal(res.status, 200);
+    };
+    const check = async (cookie: string) => {
+      const res = await fetch(`${BASE_URL}/api/multiplayer/matchmaking`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Cookie: cookie },
+        body: JSON.stringify({ gameId, action: 'check' }),
+      });
+      assert.equal(res.status, 200);
+      return (await res.json()) as { matched: boolean; players?: Array<{ userId: string }> };
+    };
+
+    await join(first.cookie);
+    await join(second.cookie);
+
+    const stolen = await check(outsider.cookie);
+    assert.equal(stolen.matched, false);
+
+    const legitimate = await check(first.cookie);
+    assert.equal(legitimate.matched, true);
+    const matchedIds = (legitimate.players ?? []).map((player) => player.userId).sort();
+    assert.deepEqual(matchedIds, [await currentUserId(first.cookie), await currentUserId(second.cookie)].sort());
   });
 
   it('rejects missing gameId → 400', async () => {

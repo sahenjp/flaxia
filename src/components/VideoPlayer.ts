@@ -14,7 +14,7 @@ function formatTime(seconds: number): string {
 }
 
 function svgIcon(paths: string, viewBox = '0 0 24 24'): string {
-  return `<svg viewBox="${viewBox}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`;
+  return `<svg aria-hidden="true" focusable="false" viewBox="${viewBox}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`;
 }
 
 const ICONS = {
@@ -46,6 +46,8 @@ export function createVideoPlayer(props: VideoPlayerProps): HTMLElement {
   const container = document.createElement('div');
   container.className = 'video-player';
   container.tabIndex = 0;
+  container.setAttribute('role', 'group');
+  container.setAttribute('aria-label', t('video_player.player'));
 
   const video = document.createElement('video');
   video.className = 'video-player-element';
@@ -86,6 +88,14 @@ export function createVideoPlayer(props: VideoPlayerProps): HTMLElement {
 
   const seekbar = document.createElement('div');
   seekbar.className = 'video-player-seekbar';
+  seekbar.setAttribute('role', 'slider');
+  seekbar.tabIndex = -1;
+  seekbar.setAttribute('aria-label', t('video_player.seek'));
+  seekbar.setAttribute('aria-valuemin', '0');
+  seekbar.setAttribute('aria-valuemax', '0');
+  seekbar.setAttribute('aria-valuenow', '0');
+  seekbar.setAttribute('aria-valuetext', '0:00');
+  seekbar.setAttribute('aria-disabled', 'true');
   const seekbarTrack = document.createElement('div');
   seekbarTrack.className = 'video-player-seekbar-track';
   const seekbarBuffered = document.createElement('div');
@@ -135,14 +145,17 @@ export function createVideoPlayer(props: VideoPlayerProps): HTMLElement {
   volumeSlider.max = '1';
   volumeSlider.step = '0.05';
   volumeSlider.value = '1';
+  volumeSlider.setAttribute('aria-label', t('video_player.volume'));
 
   const speedBtn = document.createElement('button');
   speedBtn.className = 'video-player-btn video-player-speed-btn';
   speedBtn.textContent = '1x';
+  speedBtn.setAttribute('aria-label', `${t('video_player.speed')}: 1x`);
 
   const fsBtn = document.createElement('button');
   fsBtn.className = 'video-player-btn video-player-fs-btn';
   fsBtn.innerHTML = ICONS.fullscreen;
+  fsBtn.setAttribute('aria-label', t('video_player.fullscreen'));
 
   volumeWrap.appendChild(volumeBtn);
   volumeWrap.appendChild(volumeSlider);
@@ -188,7 +201,11 @@ export function createVideoPlayer(props: VideoPlayerProps): HTMLElement {
   };
 
   const updatePlayButton = () => {
-    if (video.paused || video.ended) {
+    const isPaused = video.paused || video.ended;
+    const label = t(isPaused ? 'video_player.play' : 'video_player.pause');
+    bigPlayBtn.setAttribute('aria-label', label);
+    playBtn.setAttribute('aria-label', label);
+    if (isPaused) {
       bigPlayBtn.style.display = 'flex';
       playBtn.innerHTML = ICONS.play;
     } else {
@@ -198,6 +215,7 @@ export function createVideoPlayer(props: VideoPlayerProps): HTMLElement {
   };
 
   const updateVolumeIcon = () => {
+    volumeBtn.setAttribute('aria-label', t(video.muted ? 'video_player.unmute' : 'video_player.mute'));
     if (video.muted || video.volume === 0) {
       volumeBtn.innerHTML = ICONS.volumeMuted;
     } else if (video.volume < 0.5) {
@@ -208,12 +226,19 @@ export function createVideoPlayer(props: VideoPlayerProps): HTMLElement {
   };
 
   const updateSeekbar = () => {
-    if (!isDragging && video.duration) {
-      const pct = (video.currentTime / video.duration) * 100;
+    const duration = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : 0;
+    const currentTime = Number.isFinite(video.currentTime) ? video.currentTime : 0;
+    const max = Math.floor(duration);
+    const current = Math.min(Math.floor(currentTime), max);
+    seekbar.setAttribute('aria-valuemax', String(max));
+    seekbar.setAttribute('aria-valuenow', String(current));
+    seekbar.setAttribute('aria-valuetext', `${formatTime(currentTime)} / ${formatTime(duration)}`);
+    if (!isDragging && duration > 0) {
+      const pct = (currentTime / duration) * 100;
       seekbarProgress.style.width = `${pct}%`;
       seekbarThumb.style.left = `${pct}%`;
     }
-    timeCurrent.textContent = formatTime(video.currentTime);
+    timeCurrent.textContent = formatTime(currentTime);
   };
 
   const updateBuffered = () => {
@@ -309,6 +334,9 @@ export function createVideoPlayer(props: VideoPlayerProps): HTMLElement {
 
   video.addEventListener('loadedmetadata', () => {
     timeDuration.textContent = formatTime(video.duration);
+    seekbar.tabIndex = 0;
+    seekbar.removeAttribute('aria-disabled');
+    updateSeekbar();
     container.classList.add('video-player--loaded');
   });
 
@@ -403,20 +431,23 @@ export function createVideoPlayer(props: VideoPlayerProps): HTMLElement {
     speedIndex = (speedIndex + 1) % SPEEDS.length;
     video.playbackRate = SPEEDS[speedIndex];
     speedBtn.textContent = `${SPEEDS[speedIndex]}x`;
+    speedBtn.setAttribute('aria-label', `${t('video_player.speed')}: ${speedBtn.textContent}`);
   });
 
   // --- Fullscreen ---
   fsBtn.addEventListener('click', (e) => {
     e.stopPropagation();
-    if (!document.fullscreenElement) {
-      container.requestFullscreen().catch(() => {});
-    } else {
+    if (document.fullscreenElement === container) {
       document.exitFullscreen().catch(() => {});
+    } else {
+      container.requestFullscreen().catch(() => {});
     }
   });
 
   document.addEventListener('fullscreenchange', () => {
-    fsBtn.innerHTML = document.fullscreenElement ? ICONS.fullscreenExit : ICONS.fullscreen;
+    const isFullscreen = document.fullscreenElement === container;
+    fsBtn.innerHTML = isFullscreen ? ICONS.fullscreenExit : ICONS.fullscreen;
+    fsBtn.setAttribute('aria-label', t(isFullscreen ? 'video_player.exit_fullscreen' : 'video_player.fullscreen'));
   });
 
   // --- Controls show/hide ---
@@ -436,6 +467,8 @@ export function createVideoPlayer(props: VideoPlayerProps): HTMLElement {
 
   // --- Keyboard shortcuts ---
   container.addEventListener('keydown', (e) => {
+    if (e.target === volumeSlider && e.key.startsWith('Arrow')) return;
+
     switch (e.key) {
       case ' ':
       case 'k':
@@ -454,11 +487,35 @@ export function createVideoPlayer(props: VideoPlayerProps): HTMLElement {
         break;
       case 'ArrowUp':
         e.preventDefault();
-        setVolume(video.volume + 0.1);
+        if (e.target === seekbar) {
+          video.currentTime = Math.min(video.duration || 0, video.currentTime + 5);
+          updateSeekbar();
+        } else {
+          setVolume(video.volume + 0.1);
+        }
         break;
       case 'ArrowDown':
         e.preventDefault();
-        setVolume(video.volume - 0.1);
+        if (e.target === seekbar) {
+          video.currentTime = Math.max(0, video.currentTime - 5);
+          updateSeekbar();
+        } else {
+          setVolume(video.volume - 0.1);
+        }
+        break;
+      case 'Home':
+        if (e.target === seekbar) {
+          e.preventDefault();
+          video.currentTime = 0;
+          updateSeekbar();
+        }
+        break;
+      case 'End':
+        if (e.target === seekbar) {
+          e.preventDefault();
+          video.currentTime = video.duration || 0;
+          updateSeekbar();
+        }
         break;
       case 'f':
         e.preventDefault();
@@ -476,6 +533,8 @@ export function createVideoPlayer(props: VideoPlayerProps): HTMLElement {
   video.load();
 
   updatePlayButton();
+  updateVolumeIcon();
+  updateSeekbar();
   showControls();
 
   return container;

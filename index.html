@@ -206,6 +206,15 @@
       .right-panel { display: none; }
       .main-container { max-width: 840px; }
     }
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation: none !important;
+        scroll-behavior: auto !important;
+        transition: none !important;
+      }
+    }
     @media (max-width: 768px) {
       .left-nav {
         position: fixed; top: 0; left: 0; width: 280px; height: 100vh;
@@ -274,7 +283,7 @@
 </head>
 <body>
   <!-- Initial loading indicator -->
-  <div class="initial-loader" id="initial-loader">
+  <div class="initial-loader" id="initial-loader" role="status" aria-live="polite">
     <div class="initial-loader-content">
       <div class="initial-loader-spinner"></div>
       <div>Loading Flaxia...</div>

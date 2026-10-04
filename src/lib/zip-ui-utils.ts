@@ -63,7 +63,9 @@ export function ensureZipSpinKeyframe(prefix: string): void {
 export function createZipSandboxIframe(
   containerEl: HTMLElement,
   src: string,
-  options: { sandbox?: string; hideFullscreen?: boolean; prefix?: string } = {},
+  // `sandbox` is required so untrusted game content can never be embedded
+  // without sandboxing again. Never pass allow-same-origin here.
+  options: { sandbox: string; hideFullscreen?: boolean; prefix?: string },
 ): ZipIframeHandle {
   const { sandbox, hideFullscreen = false, prefix = 'zip' } = options;
 
@@ -80,9 +82,7 @@ export function createZipSandboxIframe(
 
   const iframe = document.createElement('iframe');
   iframe.src = src;
-  if (sandbox) {
-    iframe.sandbox = sandbox;
-  }
+  iframe.sandbox = sandbox;
   iframe.setAttribute('allow', 'fullscreen');
   iframe.setAttribute('referrerpolicy', 'no-referrer');
   iframe.style.cssText = `

@@ -43,7 +43,11 @@ export async function executeWvfsZip(
     const preWarmUrl = `${zipUrl}/index.html`;
     fetch(preWarmUrl, { method: 'GET', mode: 'cors' }).catch(() => {});
 
+    // Never grant allow-same-origin here: uploaded ZIP content must stay
+    // sandboxed even though it is served from the separate sandbox origin.
+    // These flags match the Service Worker execution path.
     const { iframe, cleanup } = createZipSandboxIframe(containerEl, zipUrl, {
+      sandbox: 'allow-scripts allow-pointer-lock allow-fullscreen',
       hideFullscreen,
       prefix: PREFIX,
     });

@@ -52,6 +52,29 @@ describe('security guards', () => {
     assert.deepEqual(offenders, [], `allow-same-origin is banned: ${offenders.join(', ')}`);
   });
 
+  it('sandboxes every untrusted-game iframe', () => {
+    // Untrusted ZIP/HTML games must always be embedded with an explicit
+    // sandbox value (and never allow-same-origin). createZipSandboxIframe
+    // requires the option at the type level; this guard catches a future
+    // caller that bypasses the helper or drops the option.
+    const callers = walk(join(ROOT, 'src')).filter((file) =>
+      /createZipSandboxIframe\(/.test(scanableSource(readFileSync(file, 'utf8'))),
+    );
+    assert.ok(callers.length > 0, 'expected at least one createZipSandboxIframe caller');
+    const offenders = callers
+      .filter((file) => {
+        const src = scanableSource(readFileSync(file, 'utf8'));
+        if (/allow-same-origin/.test(src)) return true;
+        // Each call spans lines, so check the whole file: every call site
+        // must pass its own explicit sandbox option.
+        const calls = src.split('createZipSandboxIframe(').length - 1;
+        const options = (src.match(/sandbox\s*:/g) ?? []).length;
+        return options < calls;
+      })
+      .map((file) => relative(ROOT, file));
+    assert.deepEqual(offenders, [], `untrusted-game iframes must pass sandbox: ${offenders.join(', ')}`);
+  });
+
   it('serves the sandbox from a dedicated origin', () => {
     const toml = readFileSync(join(ROOT, 'wrangler.toml'), 'utf8');
     const get = (key: string) => toml.match(new RegExp(`^${key}\\s*=\\s*"([^"]+)"`, 'm'))?.[1];
