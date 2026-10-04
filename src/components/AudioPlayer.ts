@@ -6,6 +6,8 @@ export function createAudioPlayer(props: GifPreviewProps): HTMLElement {
   const container = document.createElement('div');
   container.className = 'audio-player';
   container.tabIndex = 0;
+  container.setAttribute('role', 'group');
+  container.setAttribute('aria-label', t('audio_player.player'));
 
   if (!props.gifKey && !props.src) {
     const fallback = document.createElement('div');
@@ -32,6 +34,7 @@ export function createAudioPlayer(props: GifPreviewProps): HTMLElement {
 
   const visualizerCanvas = document.createElement('canvas');
   visualizerCanvas.className = 'audio-visualizer-canvas';
+  visualizerCanvas.setAttribute('aria-hidden', 'true');
 
   // --- Error / loading / overlay ---
   const errorEl = document.createElement('div');
@@ -61,6 +64,14 @@ export function createAudioPlayer(props: GifPreviewProps): HTMLElement {
 
   const seekbar = document.createElement('div');
   seekbar.className = 'audio-player-seekbar';
+  seekbar.setAttribute('role', 'slider');
+  seekbar.tabIndex = -1;
+  seekbar.setAttribute('aria-label', t('video_player.seek'));
+  seekbar.setAttribute('aria-valuemin', '0');
+  seekbar.setAttribute('aria-valuemax', '0');
+  seekbar.setAttribute('aria-valuenow', '0');
+  seekbar.setAttribute('aria-valuetext', '0:00');
+  seekbar.setAttribute('aria-disabled', 'true');
   const seekbarTrack = document.createElement('div');
   seekbarTrack.className = 'audio-player-seekbar-track';
   const seekbarBuffered = document.createElement('div');
@@ -110,10 +121,12 @@ export function createAudioPlayer(props: GifPreviewProps): HTMLElement {
   volumeSlider.max = '1';
   volumeSlider.step = '0.05';
   volumeSlider.value = '1';
+  volumeSlider.setAttribute('aria-label', t('video_player.volume'));
 
   const speedBtn = document.createElement('button');
   speedBtn.className = 'audio-player-btn audio-player-speed-btn';
   speedBtn.textContent = '1x';
+  speedBtn.setAttribute('aria-label', `${t('video_player.speed')}: 1x`);
 
   volumeWrap.appendChild(volumeBtn);
   volumeWrap.appendChild(volumeSlider);
@@ -161,7 +174,11 @@ export function createAudioPlayer(props: GifPreviewProps): HTMLElement {
   };
 
   const updatePlayButton = () => {
-    if (audio.paused || audio.ended) {
+    const isPaused = audio.paused || audio.ended;
+    const label = t(isPaused ? 'video_player.play' : 'video_player.pause');
+    bigPlayBtn.setAttribute('aria-label', label);
+    playBtn.setAttribute('aria-label', label);
+    if (isPaused) {
       bigPlayBtn.style.display = 'flex';
       playBtn.innerHTML = ICONS.play;
     } else {
@@ -171,6 +188,7 @@ export function createAudioPlayer(props: GifPreviewProps): HTMLElement {
   };
 
   const updateVolumeIcon = () => {
+    volumeBtn.setAttribute('aria-label', t(audio.muted ? 'video_player.unmute' : 'video_player.mute'));
     if (audio.muted || audio.volume === 0) {
       volumeBtn.innerHTML = ICONS.volumeMuted;
     } else if (audio.volume < 0.5) {
@@ -181,12 +199,19 @@ export function createAudioPlayer(props: GifPreviewProps): HTMLElement {
   };
 
   const updateSeekbar = () => {
-    if (!isDragging && audio.duration) {
-      const pct = (audio.currentTime / audio.duration) * 100;
+    const duration = Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : 0;
+    const currentTime = Number.isFinite(audio.currentTime) ? audio.currentTime : 0;
+    const max = Math.floor(duration);
+    const current = Math.min(Math.floor(currentTime), max);
+    seekbar.setAttribute('aria-valuemax', String(max));
+    seekbar.setAttribute('aria-valuenow', String(current));
+    seekbar.setAttribute('aria-valuetext', `${formatTime(currentTime)} / ${formatTime(duration)}`);
+    if (!isDragging && duration > 0) {
+      const pct = (currentTime / duration) * 100;
       seekbarProgress.style.width = `${pct}%`;
       seekbarThumb.style.left = `${pct}%`;
     }
-    timeCurrent.textContent = formatTime(audio.currentTime);
+    timeCurrent.textContent = formatTime(currentTime);
   };
 
   const updateBuffered = () => {
@@ -313,6 +338,9 @@ export function createAudioPlayer(props: GifPreviewProps): HTMLElement {
 
   audio.addEventListener('loadedmetadata', () => {
     timeDuration.textContent = formatTime(audio.duration);
+    seekbar.tabIndex = 0;
+    seekbar.removeAttribute('aria-disabled');
+    updateSeekbar();
     container.classList.add('audio-player--loaded');
   });
 
@@ -412,6 +440,7 @@ export function createAudioPlayer(props: GifPreviewProps): HTMLElement {
     speedIndex = (speedIndex + 1) % SPEEDS.length;
     audio.playbackRate = SPEEDS[speedIndex];
     speedBtn.textContent = `${SPEEDS[speedIndex]}x`;
+    speedBtn.setAttribute('aria-label', `${t('video_player.speed')}: ${speedBtn.textContent}`);
   });
 
   // --- Controls show/hide ---
@@ -431,6 +460,8 @@ export function createAudioPlayer(props: GifPreviewProps): HTMLElement {
 
   // --- Keyboard shortcuts ---
   container.addEventListener('keydown', (e) => {
+    if (e.target === volumeSlider && e.key.startsWith('Arrow')) return;
+
     switch (e.key) {
       case ' ':
       case 'k':
@@ -449,11 +480,35 @@ export function createAudioPlayer(props: GifPreviewProps): HTMLElement {
         break;
       case 'ArrowUp':
         e.preventDefault();
-        setVolume(audio.volume + 0.1);
+        if (e.target === seekbar) {
+          audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + 5);
+          updateSeekbar();
+        } else {
+          setVolume(audio.volume + 0.1);
+        }
         break;
       case 'ArrowDown':
         e.preventDefault();
-        setVolume(audio.volume - 0.1);
+        if (e.target === seekbar) {
+          audio.currentTime = Math.max(0, audio.currentTime - 5);
+          updateSeekbar();
+        } else {
+          setVolume(audio.volume - 0.1);
+        }
+        break;
+      case 'Home':
+        if (e.target === seekbar) {
+          e.preventDefault();
+          audio.currentTime = 0;
+          updateSeekbar();
+        }
+        break;
+      case 'End':
+        if (e.target === seekbar) {
+          e.preventDefault();
+          audio.currentTime = audio.duration || 0;
+          updateSeekbar();
+        }
         break;
       case 'm':
         e.preventDefault();
@@ -484,6 +539,8 @@ export function createAudioPlayer(props: GifPreviewProps): HTMLElement {
   });
 
   updatePlayButton();
+  updateVolumeIcon();
+  updateSeekbar();
   showControls();
 
   return container;
@@ -537,7 +594,7 @@ function formatTime(seconds: number): string {
 }
 
 function svgIcon(paths: string, viewBox = '0 0 24 24'): string {
-  return `<svg viewBox="${viewBox}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`;
+  return `<svg aria-hidden="true" focusable="false" viewBox="${viewBox}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`;
 }
 
 const ICONS = {

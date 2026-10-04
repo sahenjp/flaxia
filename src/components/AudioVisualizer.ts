@@ -7,6 +7,11 @@ export class AudioVisualizer {
   private animationId: number | null = null;
   private isPlaying: boolean = false;
   private resizeObserver: ResizeObserver | null = null;
+  private readonly reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+  private readonly handleMotionPreferenceChange = () => {
+    if (this.reducedMotionQuery.matches) this.stop();
+    else if (this.isPlaying) this.start();
+  };
 
   // Main-thread drawing state
   private drawWidth = 0;
@@ -18,6 +23,7 @@ export class AudioVisualizer {
   constructor(audioElement: HTMLAudioElement, canvasElement: HTMLCanvasElement) {
     this.audioElement = audioElement;
     this.canvas = canvasElement;
+    this.reducedMotionQuery.addEventListener('change', this.handleMotionPreferenceChange);
     this.setupAudioContext();
     this.setupEventListeners();
     this.setupResizeObserver();
@@ -87,7 +93,7 @@ export class AudioVisualizer {
   }
 
   public start(): void {
-    if (!this.audioContext || !this.analyser || this.animationId) return;
+    if (!this.audioContext || !this.analyser) return;
 
     if (this.audioContext.state === 'suspended') {
       this.audioContext.resume().catch((error) => {
@@ -95,6 +101,7 @@ export class AudioVisualizer {
       });
     }
 
+    if (this.reducedMotionQuery.matches || this.animationId) return;
     this.draw();
   }
 
@@ -153,6 +160,7 @@ export class AudioVisualizer {
 
   public cleanup(): void {
     this.stop();
+    this.reducedMotionQuery.removeEventListener('change', this.handleMotionPreferenceChange);
 
     if (this.resizeObserver) {
       this.resizeObserver.disconnect();
