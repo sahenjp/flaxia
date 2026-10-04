@@ -1,6 +1,7 @@
 import { attachPlusBadge } from '../lib/avatar.js';
 import { formatCount } from '../lib/format.js';
 import { t } from '../lib/i18n.js';
+import { icon } from '../lib/icons.js';
 import { Post, PostCardMode } from '../types/post.js';
 import { createPostCard } from './PostCard.js';
 
@@ -41,91 +42,34 @@ export function createSearchPage({ query, type = 'posts', currentUser, sandboxOr
   // ── Header with search input ──
   const header = document.createElement('div');
   header.className = 'search-page-header';
-  header.style.cssText = `
-    padding: 0.75rem 1rem;
-    border-bottom: 1px solid var(--border);
-    position: sticky;
-    top: 0;
-    background: var(--bg-primary);
-    z-index: 10;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-  `;
 
   const backBtn = document.createElement('button');
+  backBtn.className = 'search-page-back';
   backBtn.textContent = '←';
-  backBtn.style.cssText = `
-    background: none;
-    border: none;
-    font-size: 1.25rem;
-    cursor: pointer;
-    color: var(--text-primary);
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
-    transition: background 0.2s;
-    flex-shrink: 0;
-  `;
-  backBtn.addEventListener('mouseenter', () => {
-    backBtn.style.background = 'var(--bg-hover, rgba(0,0,0,0.04))';
-  });
-  backBtn.addEventListener('mouseleave', () => {
-    backBtn.style.background = 'none';
-  });
+  backBtn.setAttribute('aria-label', 'Back');
   backBtn.addEventListener('click', () => {
     window.history.pushState({}, '', '/explore');
     window.dispatchEvent(new CustomEvent('spaNavigate', { detail: { view: 'explore' } }));
   });
 
   const searchBox = document.createElement('div');
-  searchBox.className = 'search-box';
-  searchBox.style.cssText = 'position: relative; flex: 1;';
+  searchBox.className = 'search-page-box';
 
   const input = document.createElement('input');
   input.type = 'text';
   input.className = 'search-input';
   input.value = query;
   input.placeholder = t('explore.search_placeholder');
-  input.style.cssText = `
-    width: 100%;
-    padding: 0.6rem 0.75rem 0.6rem 2.3rem;
-    background: var(--bg-input);
-    border: 1px solid var(--border);
-    border-radius: 9999px;
-    color: var(--text-primary);
-    font-family: inherit;
-    font-size: 0.875rem;
-    outline: none;
-    transition: border-color 0.2s ease;
-    box-sizing: border-box;
-  `;
 
-  const icon = document.createElement('span');
-  icon.className = 'search-icon';
-  icon.style.cssText =
-    'position: absolute; left: 0.7rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.8rem; pointer-events: none;';
-  icon.textContent = '🔍';
+  const iconDeco = document.createElement('span');
+  iconDeco.className = 'search-icon-deco';
+  iconDeco.appendChild(icon('search'));
 
   searchBox.appendChild(input);
-  searchBox.appendChild(icon);
+  searchBox.appendChild(iconDeco);
 
   const suggestDropdown = document.createElement('div');
   suggestDropdown.className = 'tag-suggest-dropdown';
-  suggestDropdown.style.cssText = `
-    display: none;
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    background: var(--bg-primary);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    z-index: 100;
-    max-height: 300px;
-    overflow-y: auto;
-    margin-top: 4px;
-  `;
   searchBox.appendChild(suggestDropdown);
 
   header.appendChild(backBtn);
@@ -135,17 +79,6 @@ export function createSearchPage({ query, type = 'posts', currentUser, sandboxOr
   // ── Filter bar ──
   const filterBar = document.createElement('div');
   filterBar.className = 'search-filter-bar';
-  filterBar.style.cssText = `
-    display: flex;
-    gap: 0.5rem;
-    padding: 0.75rem 1rem;
-    border-bottom: 1px solid var(--border);
-    overflow-x: auto;
-    position: sticky;
-    top: 0;
-    background: var(--bg-primary);
-    z-index: 9;
-  `;
   // Calculate filter bar top based on actual header height
   requestAnimationFrame(() => {
     filterBar.style.top = `${header.offsetHeight}px`;
@@ -162,28 +95,15 @@ export function createSearchPage({ query, type = 'posts', currentUser, sandboxOr
 
   const updateFilterUI = (activeKey: string) => {
     filterBtns.forEach((btn) => {
-      const isActive = btn.dataset.filter === activeKey;
-      btn.style.border = `1px solid ${isActive ? 'var(--accent)' : 'var(--border)'}`;
-      btn.style.background = isActive ? 'var(--accent)' : 'transparent';
-      btn.style.color = isActive ? 'white' : 'var(--text-muted)';
+      btn.classList.toggle('is-active', btn.dataset.filter === activeKey);
     });
   };
 
   for (const f of filters) {
     const btn = document.createElement('button');
-    btn.className = 'filter-btn';
+    btn.className = 'explore-filter-btn';
     btn.dataset.filter = f.key;
     btn.textContent = f.label;
-    btn.style.cssText = `
-      padding: 0.4rem 1rem;
-      border-radius: 999px;
-      border: none;
-      cursor: pointer;
-      font-family: inherit;
-      font-size: 0.8rem;
-      white-space: nowrap;
-      transition: all 0.2s ease;
-    `;
     btn.onclick = () => {
       activeFilter = f.key;
       updateFilterUI(f.key);
@@ -199,20 +119,12 @@ export function createSearchPage({ query, type = 'posts', currentUser, sandboxOr
   // ── Content area ──
   const content = document.createElement('div');
   content.className = 'search-page-content';
-  content.style.cssText = `
-    padding: 1rem;
-    max-width: 600px;
-  `;
 
   container.appendChild(content);
 
   // Loading state
   const loadingEl = document.createElement('div');
-  loadingEl.style.cssText = `
-    text-align: center;
-    padding: 3rem;
-    color: var(--text-muted);
-  `;
+  loadingEl.className = 'search-loading';
   loadingEl.textContent = t('common.loading');
   content.appendChild(loadingEl);
 
@@ -267,40 +179,34 @@ export function createSearchPage({ query, type = 'posts', currentUser, sandboxOr
     suggestDropdown.style.display = 'block';
     for (const it of items) {
       const item = document.createElement('div');
-      item.style.cssText = `padding: 0.6rem 0.75rem; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; transition: background 0.15s;`;
-      item.addEventListener('mouseenter', () => {
-        item.style.background = 'var(--bg-hover, rgba(0,0,0,0.04))';
-      });
-      item.addEventListener('mouseleave', () => {
-        item.style.background = 'none';
-      });
+      item.className = 'suggest-item';
       if (it.type === 'tag') {
         const tagName = document.createElement('span');
-        tagName.textContent = `# ${it.label}`;
-        tagName.style.cssText = 'font-weight: 600; color: var(--accent); font-size: 0.875rem;';
+        tagName.className = 'suggest-tag-name';
+        tagName.textContent = `#${it.label}`;
         const count = document.createElement('span');
+        count.className = 'suggest-count';
         count.textContent = formatCount(it.count);
-        count.style.cssText = 'margin-left: auto; color: var(--text-muted); font-size: 0.75rem;';
         item.appendChild(tagName);
         item.appendChild(count);
         item.addEventListener('click', () => {
           suggestDropdown.style.display = 'none';
           window.history.pushState({}, '', `/explore?tag=${encodeURIComponent(it.label)}`);
-          window.location.reload();
+          window.dispatchEvent(new CustomEvent('spaNavigate', { detail: { view: 'explore', tag: it.label } }));
         });
       } else {
         const avatar = document.createElement('div');
-        avatar.style.cssText = `width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: var(--bg-primary); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.7rem; flex-shrink: 0;`;
+        avatar.className = 'suggest-avatar';
         avatar.textContent = (it.display || it.label)[0].toUpperCase();
         attachPlusBadge(avatar, it.badge);
         const info = document.createElement('div');
-        info.style.cssText = 'display: flex; flex-direction: column;';
+        info.className = 'suggest-info';
         const name = document.createElement('span');
+        name.className = 'suggest-name';
         name.textContent = `@${it.label}`;
-        name.style.cssText = 'font-weight: 600; color: var(--text-primary); font-size: 0.85rem;';
         const display = document.createElement('span');
+        display.className = 'suggest-display';
         display.textContent = it.display;
-        display.style.cssText = 'font-size: 0.75rem; color: var(--text-muted);';
         info.appendChild(name);
         info.appendChild(display);
         item.appendChild(avatar);
@@ -325,7 +231,7 @@ export function createSearchPage({ query, type = 'posts', currentUser, sandboxOr
         const spaceIdx = afterHash.indexOf(' ');
         if (spaceIdx === -1 && afterHash) {
           window.history.pushState({}, '', `/explore?tag=${encodeURIComponent(afterHash)}`);
-          window.location.reload();
+          window.dispatchEvent(new CustomEvent('spaNavigate', { detail: { view: 'explore', tag: afterHash } }));
           return;
         }
       }
@@ -413,7 +319,7 @@ export function createSearchPage({ query, type = 'posts', currentUser, sandboxOr
       console.error('Search error:', error);
       if (loadingEl.parentNode === content) content.removeChild(loadingEl);
       const errorEl = document.createElement('div');
-      errorEl.style.cssText = 'text-align: center; padding: 3rem; color: var(--danger);';
+      errorEl.className = 'search-error';
       errorEl.textContent = t('common.error');
       content.appendChild(errorEl);
     }
@@ -431,15 +337,14 @@ export function createSearchPage({ query, type = 'posts', currentUser, sandboxOr
       anyVisible = true;
       if (showAll) {
         const sectionTitle = document.createElement('div');
+        sectionTitle.className = 'search-section-title';
         sectionTitle.textContent = t('search.users');
-        sectionTitle.style.cssText =
-          'font-weight: 600; font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.5rem; padding: 0 0.25rem;';
         content.appendChild(sectionTitle);
       }
       renderUsers(allUsers);
       if (showAll && allArcade.length > 0) {
         const divider = document.createElement('div');
-        divider.style.cssText = 'height: 1px; background: var(--border); margin: 1rem 0;';
+        divider.className = 'search-divider';
         content.appendChild(divider);
       }
     }
@@ -449,22 +354,20 @@ export function createSearchPage({ query, type = 'posts', currentUser, sandboxOr
       anyVisible = true;
       if (showAll) {
         const sectionTitle = document.createElement('div');
+        sectionTitle.className = 'search-section-title';
         sectionTitle.textContent = t('explore.filter_arcade');
-        sectionTitle.style.cssText =
-          'font-weight: 600; font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.5rem; padding: 0 0.25rem;';
         content.appendChild(sectionTitle);
         renderArcade(allArcade, false);
       } else {
         const sectionTitle = document.createElement('div');
+        sectionTitle.className = 'search-section-title search-section-title--strong';
         sectionTitle.textContent = t('explore.filter_arcade');
-        sectionTitle.style.cssText =
-          'font-weight: 600; font-size: 1rem; color: var(--text-primary); margin-bottom: 0.75rem; padding: 0 0.25rem;';
         content.appendChild(sectionTitle);
         renderArcade(allArcade, true);
       }
       if (showAll && allPosts.length > 0) {
         const divider = document.createElement('div');
-        divider.style.cssText = 'height: 1px; background: var(--border); margin: 1rem 0;';
+        divider.className = 'search-divider';
         content.appendChild(divider);
       }
     }
@@ -474,9 +377,8 @@ export function createSearchPage({ query, type = 'posts', currentUser, sandboxOr
       anyVisible = true;
       if (showAll) {
         const sectionTitle = document.createElement('div');
+        sectionTitle.className = 'search-section-title';
         sectionTitle.textContent = t('search.posts');
-        sectionTitle.style.cssText =
-          'font-weight: 600; font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.5rem; padding: 0 0.25rem;';
         content.appendChild(sectionTitle);
       }
       renderPosts(allPosts);
@@ -484,8 +386,7 @@ export function createSearchPage({ query, type = 'posts', currentUser, sandboxOr
 
     if (!anyVisible) {
       const empty = document.createElement('div');
-      empty.style.cssText =
-        "text-align: center; padding: 3rem; color: var(--text-muted); font-family: 'Noto Sans', monospace, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;";
+      empty.className = 'search-empty';
       empty.textContent = t('search.no_results', { query });
       content.appendChild(empty);
     }
@@ -504,47 +405,29 @@ export function createSearchPage({ query, type = 'posts', currentUser, sandboxOr
   ) => {
     users.forEach((user) => {
       const userItem = document.createElement('div');
-      userItem.style.cssText = `
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        padding: 0.75rem;
-        border-radius: 0.25rem;
-        cursor: pointer;
-        transition: background-color 0.2s ease;
-      `;
-      userItem.onmouseover = () => (userItem.style.background = 'var(--bg-secondary)');
-      userItem.onmouseout = () => (userItem.style.background = 'transparent');
+      userItem.className = 'search-user-row';
       userItem.onclick = () => {
         window.history.pushState({ username: user.username }, '', `/profile/${user.username}`);
         window.dispatchEvent(new CustomEvent('spaNavigate', { detail: { view: 'profile', username: user.username } }));
       };
 
       const avatar = document.createElement('div');
-      avatar.style.cssText = `
-        width: 40px; height: 40px; border-radius: 50%;
-        background: ${user.avatar_key ? `url('/api/images/${user.avatar_key}')` : 'var(--accent)'};
-        background-size: cover;
-        background-position: center;
-        color: var(--bg-primary);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: bold;
-        font-size: 0.875rem;
-        flex-shrink: 0;
-      `;
+      avatar.className = 'search-user-avatar';
+      if (user.avatar_key) {
+        avatar.style.backgroundImage = `url('/api/images/${user.avatar_key}')`;
+      }
       if (!user.avatar_key) {
         avatar.textContent = user.display_name?.[0]?.toUpperCase() || user.username[0].toUpperCase();
       }
       attachPlusBadge(avatar, user.badge_type);
 
       const userInfo = document.createElement('div');
+      userInfo.className = 'search-user-info';
       const usernameEl = document.createElement('div');
-      usernameEl.style.cssText = 'font-weight: 600; color: var(--text-primary);';
+      usernameEl.className = 'search-user-name';
       usernameEl.textContent = `@${user.username}`;
       const displayNameEl = document.createElement('div');
-      displayNameEl.style.cssText = 'font-size: 0.875rem; color: var(--text-muted);';
+      displayNameEl.className = 'search-user-display';
       displayNameEl.textContent = user.display_name || '';
 
       userInfo.appendChild(usernameEl);
@@ -573,21 +456,7 @@ export function createSearchPage({ query, type = 'posts', currentUser, sandboxOr
       // YouTube-style horizontal list
       for (const post of posts) {
         const row = document.createElement('div');
-        row.style.cssText = `
-          display: flex;
-          gap: 1rem;
-          padding: 0.75rem;
-          border-radius: 0.5rem;
-          cursor: pointer;
-          transition: background 0.2s;
-          margin-bottom: 0.25rem;
-        `;
-        row.addEventListener('mouseenter', () => {
-          row.style.background = 'var(--bg-secondary)';
-        });
-        row.addEventListener('mouseleave', () => {
-          row.style.background = 'transparent';
-        });
+        row.className = 'explore-arcade-row';
         row.onclick = () => {
           window.history.pushState({ postId: post.id }, '', `/arcade/${post.id}`);
           window.dispatchEvent(new CustomEvent('spaNavigate', { detail: { view: 'arcade', postId: post.id } }));
@@ -595,61 +464,39 @@ export function createSearchPage({ query, type = 'posts', currentUser, sandboxOr
 
         // Thumbnail (fixed width, 16:9 aspect ratio)
         const thumb = document.createElement('div');
-        thumb.style.cssText = `
-          width: 180px;
-          flex-shrink: 0;
-          aspect-ratio: 16 / 9;
-          border-radius: 0.5rem;
-          overflow: hidden;
-          position: relative;
-          background: var(--bg-input);
-        `;
+        thumb.className = 'arcade-row-thumb';
         if (post.thumbnail_key) {
           const img = document.createElement('img');
+          img.className = 'arcade-row-img';
           img.src = `/api/images/${post.thumbnail_key}?_=${Date.now()}`;
           img.loading = 'lazy';
           img.width = 180;
           img.height = 101;
-          img.style.cssText = 'width: 100%; height: 100%; object-fit: cover; display: block;';
           thumb.appendChild(img);
         } else {
-          const icon = document.createElement('span');
-          icon.textContent = '🎮';
-          icon.style.cssText =
-            'position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;';
-          thumb.appendChild(icon);
+          const fallback = document.createElement('span');
+          fallback.className = 'arcade-row-fallback';
+          fallback.appendChild(icon('arcade', { width: '24', height: '24' }));
+          thumb.appendChild(fallback);
         }
 
         // Badge
         const badge = document.createElement('span');
-        badge.style.cssText = `
-          position: absolute; top: 4px; right: 4px;
-          padding: 0.1rem 0.4rem; border-radius: 4px;
-          background: var(--accent); color: white;
-          font-size: 0.6rem; font-weight: 600; text-transform: uppercase;
-          line-height: 1.2;
-        `;
+        badge.className = 'arcade-row-badge';
         badge.textContent = 'GAME';
         thumb.appendChild(badge);
 
         // Details
         const details = document.createElement('div');
-        details.style.cssText = 'display: flex; flex-direction: column; justify-content: center; min-width: 0;';
+        details.className = 'arcade-row-info';
 
         const title = document.createElement('div');
+        title.className = 'arcade-row-title';
         title.textContent = post.text || '(no title)';
-        title.style.cssText = `
-          font-weight: 600; color: var(--text-primary);
-          font-size: 0.95rem; line-height: 1.4;
-          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-        `;
 
         const meta = document.createElement('div');
+        meta.className = 'arcade-row-meta';
         meta.textContent = `@${post.username}`;
-        meta.style.cssText = `
-          font-size: 0.8rem; color: var(--text-muted);
-          margin-top: 0.25rem;
-        `;
 
         details.appendChild(title);
         details.appendChild(meta);
@@ -660,19 +507,10 @@ export function createSearchPage({ query, type = 'posts', currentUser, sandboxOr
     } else {
       // Horizontal scroll cards
       const wrapper = document.createElement('div');
-      wrapper.style.cssText = 'position: relative;';
+      wrapper.className = 'search-arcade-strip';
 
       const scrollContainer = document.createElement('div');
-      scrollContainer.style.cssText = `
-        display: flex;
-        overflow-x: auto;
-        gap: 0.75rem;
-        padding: 0.5rem 0 0.75rem;
-        scrollbar-width: thin;
-        scrollbar-color: var(--border) transparent;
-        scroll-snap-type: x mandatory;
-        -webkit-overflow-scrolling: touch;
-      `;
+      scrollContainer.className = 'search-arcade-track';
       scrollContainer.addEventListener('wheel', (e) => {
         if (Math.abs(e.deltaX) < Math.abs(e.deltaY)) {
           e.preventDefault();
@@ -682,18 +520,7 @@ export function createSearchPage({ query, type = 'posts', currentUser, sandboxOr
 
       // Right-edge fade hint
       const fadeHint = document.createElement('div');
-      fadeHint.style.cssText = `
-        position: absolute;
-        top: 0;
-        right: 0;
-        bottom: 0;
-        width: 48px;
-        background: linear-gradient(to right, transparent, var(--bg-primary));
-        pointer-events: none;
-        opacity: 1;
-        transition: opacity 0.3s;
-        z-index: 1;
-      `;
+      fadeHint.className = 'search-arcade-fade';
       wrapper.appendChild(fadeHint);
 
       const updateFade = () => {
@@ -704,25 +531,7 @@ export function createSearchPage({ query, type = 'posts', currentUser, sandboxOr
 
       for (const post of posts) {
         const card = document.createElement('div');
-        card.style.cssText = `
-          width: 150px;
-          flex-shrink: 0;
-          cursor: pointer;
-          border-radius: 0.75rem;
-          overflow: hidden;
-          transition: transform 0.2s, box-shadow 0.2s;
-          scroll-snap-align: start;
-          background: var(--bg-secondary);
-          border: 1px solid var(--border);
-        `;
-        card.onmouseenter = () => {
-          card.style.transform = 'translateY(-3px)';
-          card.style.boxShadow = '0 6px 16px rgba(0,0,0,0.15)';
-        };
-        card.onmouseleave = () => {
-          card.style.transform = 'none';
-          card.style.boxShadow = 'none';
-        };
+        card.className = 'search-arcade-card';
         card.onclick = () => {
           window.history.pushState({ postId: post.id }, '', `/arcade/${post.id}`);
           window.dispatchEvent(new CustomEvent('spaNavigate', { detail: { view: 'arcade', postId: post.id } }));
@@ -730,60 +539,39 @@ export function createSearchPage({ query, type = 'posts', currentUser, sandboxOr
 
         // Thumbnail
         const thumb = document.createElement('div');
-        thumb.style.cssText = `
-          width: 100%;
-          aspect-ratio: 9 / 12;
-          overflow: hidden;
-          position: relative;
-          background: var(--bg-input);
-        `;
+        thumb.className = 'search-arcade-thumb';
         if (post.thumbnail_key) {
           const img = document.createElement('img');
+          img.className = 'arcade-row-img';
           img.src = `/api/images/${post.thumbnail_key}?_=${Date.now()}`;
           img.loading = 'lazy';
           img.width = 150;
           img.height = 200;
-          img.style.cssText = 'width: 100%; height: 100%; object-fit: cover; display: block;';
           thumb.appendChild(img);
         } else {
-          const icon = document.createElement('span');
-          icon.textContent = '🎮';
-          icon.style.cssText =
-            'position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 2rem;';
-          thumb.appendChild(icon);
+          const fallback = document.createElement('span');
+          fallback.className = 'arcade-row-fallback';
+          fallback.appendChild(icon('arcade', { width: '32', height: '32' }));
+          thumb.appendChild(fallback);
         }
 
         // Badge
         const badge = document.createElement('span');
-        badge.style.cssText = `
-          position: absolute; top: 4px; right: 4px;
-          padding: 0.1rem 0.35rem; border-radius: 4px;
-          background: var(--accent); color: white;
-          font-size: 0.6rem; font-weight: 600; text-transform: uppercase;
-          line-height: 1.2;
-        `;
+        badge.className = 'arcade-row-badge';
         badge.textContent = 'GAME';
         thumb.appendChild(badge);
 
         // Info
         const info = document.createElement('div');
-        info.style.cssText = 'padding: 0.4rem 0.35rem 0.35rem;';
+        info.className = 'search-arcade-info';
 
         const title = document.createElement('div');
+        title.className = 'search-arcade-title';
         title.textContent = post.text?.slice(0, 60) || '(no text)';
-        title.style.cssText = `
-          font-weight: 600; color: var(--text-primary);
-          font-size: 0.8rem; line-height: 1.3;
-          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-        `;
 
         const meta = document.createElement('div');
+        meta.className = 'search-arcade-meta';
         meta.textContent = `@${post.username}`;
-        meta.style.cssText = `
-          font-size: 0.7rem; color: var(--text-muted);
-          margin-top: 0.15rem;
-          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-        `;
 
         info.appendChild(title);
         info.appendChild(meta);
