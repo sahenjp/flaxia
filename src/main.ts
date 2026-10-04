@@ -21,6 +21,15 @@ interface PageComponent {
   destroy(): void;
 }
 
+/**
+ * One-shot entrance for the center column on every SPA navigation.
+ * Removed on animationend so back-navigation restores never replay it.
+ */
+function playViewEnter(el: HTMLElement): void {
+  el.classList.add('view-enter');
+  el.addEventListener('animationend', () => el.classList.remove('view-enter'), { once: true });
+}
+
 // Initialize performance monitoring
 initPerformanceMonitoring();
 
@@ -1536,6 +1545,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
           // Assemble layout
           mainContainer.appendChild(leftNav.getElement());
+          playViewEnter(explorePage.getElement());
           mainContainer.appendChild(explorePage.getElement());
           mainContainer.appendChild(rightPanel.getElement());
 
@@ -1600,6 +1610,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           });
 
           mainContainer.appendChild(leftNav.getElement());
+          playViewEnter(searchPage.getElement());
           mainContainer.appendChild(searchPage.getElement());
           mainContainer.appendChild(rightPanel.getElement());
 
@@ -1674,6 +1685,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
           // Assemble layout
           mainContainer.appendChild(leftNav.getElement());
+          playViewEnter(arcadePage.getElement());
           mainContainer.appendChild(arcadePage.getElement());
           mainContainer.appendChild(rightPanel.getElement());
 
@@ -1745,6 +1757,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
           // Assemble layout
           mainContainer.appendChild(leftNav.getElement());
+          playViewEnter(profilePage.getElement());
           mainContainer.appendChild(profilePage.getElement());
           mainContainer.appendChild(rightPanel.getElement());
 
@@ -1806,6 +1819,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           });
 
           mainContainer.appendChild(leftNav.getElement());
+          playViewEnter(bookmarksPage.getElement());
           mainContainer.appendChild(bookmarksPage.getElement());
           mainContainer.appendChild(rightPanel.getElement());
           app.appendChild(mainContainer);
@@ -1884,6 +1898,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
           // Assemble layout
           mainContainer.appendChild(leftNav.getElement());
+          playViewEnter(notificationsPage.getElement());
           mainContainer.appendChild(notificationsPage.getElement());
           mainContainer.appendChild(rightPanel.getElement());
 
@@ -1975,6 +1990,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
           // Assemble layout
           mainContainer.appendChild(leftNav.getElement());
+          playViewEnter(settingsPage.getElement());
           mainContainer.appendChild(settingsPage.getElement());
           mainContainer.appendChild(rightPanel.getElement());
 
@@ -2016,6 +2032,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           });
 
           console.log('Thread page created, adding to container');
+          playViewEnter(threadPage.getElement());
           mainContainer.appendChild(threadPage.getElement());
           console.log('Thread page added to DOM');
 
@@ -2119,6 +2136,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
           // Assemble layout
           mainContainer.appendChild(leftNav.getElement());
+          playViewEnter(timeline.getElement());
           mainContainer.appendChild(timeline.getElement());
           mainContainer.appendChild(rightPanel.getElement());
         }
@@ -2295,6 +2313,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     // Handle SPA navigation events
+    // Global discovery palette (⌘K / Ctrl+K), lazily loaded.
+    document.addEventListener('keydown', (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') && !e.metaKey && !e.ctrlKey) {
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        void import('./components/CommandPalette.js').then(({ openCommandPalette }) => openCommandPalette());
+      }
+    });
+
     window.addEventListener('spaNavigate', async (e: Event) => {
       const detail = (
         e as CustomEvent<{

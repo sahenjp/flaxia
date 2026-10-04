@@ -53,27 +53,24 @@ export function createPostActions(props: PostActionsProps): HTMLElement {
   leftGroup.appendChild(replyButton);
   leftGroup.appendChild(quoteButton);
 
-  // Right-aligned group: rightmost impressions, then share, then bookmark
+  // Right-aligned group: rightmost reaction picker, then impressions, share, bookmark
   rightGroup.appendChild(bookmarkButton);
   rightGroup.appendChild(shareButton);
   rightGroup.appendChild(impressionsButton);
+  rightGroup.appendChild(createReactionAddButton(props.onReactionToggle));
 
   container.appendChild(leftGroup);
   container.appendChild(rightGroup);
 
-  container.appendChild(createReactionsRow(props.reactions, props.onReactionToggle));
+  // Only render the chip row when at least one reaction exists, so posts
+  // without reactions don't get a stray single-button row.
+  const reactionsRow = createReactionsRow(props.reactions, props.onReactionToggle);
+  if (reactionsRow) container.appendChild(reactionsRow);
 
   return container;
 }
 
-function createReactionsRow(reactions: ReactionSummary[], onToggle: (emoji: string) => void): HTMLElement {
-  const row = document.createElement('div');
-  row.className = 'post-reactions';
-
-  for (const reaction of reactions) {
-    row.appendChild(createReactionChip(reaction, onToggle));
-  }
-
+function createReactionAddButton(onToggle: (emoji: string) => void): HTMLElement {
   // Add-reaction button that opens the emoji picker
   const addButton = document.createElement('button');
   addButton.className = 'post-reaction-add';
@@ -89,7 +86,17 @@ function createReactionsRow(reactions: ReactionSummary[], onToggle: (emoji: stri
     openEmojiPicker(addButton, onToggle);
   });
 
-  row.appendChild(addButton);
+  return addButton;
+}
+
+function createReactionsRow(reactions: ReactionSummary[], onToggle: (emoji: string) => void): HTMLElement | null {
+  if (reactions.length === 0) return null;
+  const row = document.createElement('div');
+  row.className = 'post-reactions';
+
+  for (const reaction of reactions) {
+    row.appendChild(createReactionChip(reaction, onToggle));
+  }
 
   return row;
 }

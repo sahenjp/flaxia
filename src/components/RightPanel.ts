@@ -1,5 +1,7 @@
 import { attachPlusBadge } from '../lib/avatar.js';
 import { t } from '../lib/i18n.js';
+import { icon } from '../lib/icons.js';
+import { openCommandPalette } from './CommandPalette.js';
 
 export interface RightPanelProps {
   onSearch?: (query: string) => void;
@@ -53,21 +55,28 @@ export class RightPanel {
     const section = document.createElement('div');
     section.className = 'search-section';
 
-    const searchBox = document.createElement('div');
-    searchBox.className = 'search-box';
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'palette-trigger';
+    trigger.setAttribute('aria-label', t('right_panel.search_placeholder'));
 
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.className = 'search-input';
-    input.placeholder = t('right_panel.search_placeholder');
+    const iconWrap = document.createElement('span');
+    iconWrap.className = 'search-icon';
+    iconWrap.appendChild(icon('search'));
 
-    const icon = document.createElement('span');
-    icon.className = 'search-icon';
-    icon.textContent = '🔍';
+    const label = document.createElement('span');
+    label.className = 'palette-trigger-label';
+    label.textContent = t('right_panel.search_placeholder');
 
-    searchBox.appendChild(input);
-    searchBox.appendChild(icon);
-    section.appendChild(searchBox);
+    const kbd = document.createElement('kbd');
+    kbd.className = 'cmd-kbd palette-trigger-kbd';
+    kbd.textContent = '⌘K';
+
+    trigger.appendChild(iconWrap);
+    trigger.appendChild(label);
+    trigger.appendChild(kbd);
+    trigger.addEventListener('click', () => openCommandPalette());
+    section.appendChild(trigger);
 
     return section;
   }
@@ -85,7 +94,6 @@ export class RightPanel {
 
     const loading = document.createElement('div');
     loading.className = 'trending-loading';
-    loading.style.cssText = 'text-align: center; padding: 20px; color: var(--text-muted);';
     loading.textContent = t('common.loading');
     list.appendChild(loading);
 
@@ -109,7 +117,6 @@ export class RightPanel {
 
     const loading = document.createElement('div');
     loading.className = 'follow-loading';
-    loading.style.cssText = 'text-align: center; padding: 20px; color: var(--text-muted);';
     loading.textContent = t('common.loading');
     list.appendChild(loading);
 
@@ -120,33 +127,8 @@ export class RightPanel {
   }
 
   private setupEventListeners(): void {
-    // Search functionality
-    const searchInput = this.element.querySelector('.search-input') as HTMLInputElement;
-    if (searchInput) {
-      searchInput.addEventListener('input', (e) => {
-        // Just update input value, no auto-search
-      });
-
-      searchInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-          const query = searchInput.value.trim();
-          if (query) {
-            this.performSearch(query);
-          }
-        }
-      });
-    }
-
+    // Search now opens the command palette (wired in createSearchSection).
     // Follow buttons will be set up dynamically when user suggestions are loaded
-  }
-
-  private performSearch(query: string): void {
-    window.history.pushState({}, '', `/search?q=${encodeURIComponent(query)}&type=posts`);
-    window.dispatchEvent(
-      new CustomEvent('spaNavigate', {
-        detail: { view: 'search', searchQuery: query, searchType: 'posts' },
-      }),
-    );
   }
 
   private async loadTrendingTags(): Promise<void> {
@@ -172,50 +154,63 @@ export class RightPanel {
 
     if (this.trendingTags.length === 0) {
       const emptyState = document.createElement('div');
-      emptyState.style.cssText = 'padding: 20px; color: var(--text-muted); text-align: center;';
+      emptyState.className = 'trending-empty';
       emptyState.textContent = t('right_panel.no_trending');
       trendingList.appendChild(emptyState);
       return;
     }
 
-    this.trendingTags.forEach(({ tag, percentage }) => {
+    const maxCount = Math.max(1, ...this.trendingTags.map((entry) => entry.count || 0));
+
+    this.trendingTags.forEach(({ tag, count, percentage }, index) => {
       const item = document.createElement('div');
       item.className = 'trending-item';
-      item.style.cssText = `
-        padding: 12px 0;
-        cursor: pointer;
-        transition: background 0.2s ease;
-      `;
+      item.style.setProperty('--i', String(Math.min(index, 7)));
+      item.setAttribute('role', 'link');
+      item.setAttribute('tabindex', '0');
 
-      const content = document.createElement('div');
-      content.className = 'trending-content';
+      const rank = document.createElement('span');
+      rank.className = 'trending-rank';
+      rank.textContent = String(index + 1).padStart(2, '0');
+
+      const body = document.createElement('div');
+      body.className = 'trending-body';
 
       const hashtag = document.createElement('div');
       hashtag.className = 'trending-hashtag';
-      hashtag.style.cssText =
-        "font-family: 'Noto Sans', monospace, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: var(--accent); font-size: 15px; font-weight: 600;";
       hashtag.textContent = t('right_panel.trending_tag', { tag });
 
-      const count = document.createElement('div');
-      count.className = 'trending-count';
-      count.style.cssText =
-        "font-family: 'Noto Sans', monospace, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: var(--text-muted); font-size: 13px;";
-      count.textContent = t('right_panel.trending_percent', { percentage });
+      const meta = document.createElement('div');
+      meta.className = 'trending-meta';
+      const parts = [t('right_panel.trending_percent', { percentage })];
+      if (count === 1) {
+        parts.push(t('right_panel.trending_post_one'));
+      } else if (typeof count === 'number' && count > 0) {
+        parts.push(t('right_panel.trending_posts', { count }));
+      }
+      meta.textContent = parts.join(' · ');
 
-      content.appendChild(hashtag);
-      content.appendChild(count);
-      item.appendChild(content);
+      const bar = document.createElement('div');
+      bar.className = 'trending-bar';
+      const fill = document.createElement('span');
+      fill.style.width = `${Math.max(6, Math.round(((count || 0) / maxCount) * 100))}%`;
+      bar.appendChild(fill);
 
-      item.addEventListener('click', () => {
+      body.appendChild(hashtag);
+      body.appendChild(meta);
+      body.appendChild(bar);
+      item.appendChild(rank);
+      item.appendChild(body);
+
+      const openTag = () => {
         window.location.href = `/explore?tag=${encodeURIComponent(tag)}`;
-      });
-
-      item.addEventListener('mouseenter', () => {
-        item.style.background = 'var(--bg-secondary)';
-      });
-
-      item.addEventListener('mouseleave', () => {
-        item.style.background = 'transparent';
+      };
+      item.addEventListener('click', openTag);
+      item.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openTag();
+        }
       });
 
       trendingList.appendChild(item);
@@ -253,53 +248,28 @@ export class RightPanel {
     followSection.style.display = 'block';
     followList.innerHTML = '';
 
-    this.userSuggestions.forEach((user) => {
+    this.userSuggestions.forEach((user, index) => {
       const item = document.createElement('div');
       item.className = 'follow-item';
       item.dataset.userId = user.id;
+      item.style.setProperty('--i', String(Math.min(index, 7)));
 
       // Create avatar element
       const avatar = document.createElement('div');
       avatar.className = 'follow-avatar';
-      avatar.style.cssText = `
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        background: var(--bg-secondary);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 600;
-        color: var(--text-primary);
-        background-image: ${user.avatar_key ? `url('/api/images/${user.avatar_key}')` : 'none'};
-        background-size: cover;
-        background-position: center;
-      `;
-
-      if (!user.avatar_key) {
+      if (user.avatar_key) {
+        avatar.style.backgroundImage = `url('/api/images/${user.avatar_key}')`;
+      } else {
         avatar.textContent = user.display_name.charAt(0).toUpperCase();
-        avatar.style.background = `linear-gradient(135deg, #${Math.floor(Math.random() * 16777215).toString(16)} 0%, #${Math.floor(Math.random() * 16777215).toString(16)} 100%)`;
       }
       attachPlusBadge(avatar, user.badge_type);
 
       // Create info container
       const info = document.createElement('div');
       info.className = 'follow-info';
-      info.style.cssText = `
-        flex: 1;
-        min-width: 0;
-      `;
 
       const name = document.createElement('div');
       name.className = 'follow-name';
-      name.style.cssText = `
-        font-weight: 600;
-        color: var(--text-primary);
-        cursor: pointer;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      `;
       name.textContent = user.display_name;
       name.addEventListener('click', () => {
         window.location.href = `/profile/${user.username}`;
@@ -307,11 +277,6 @@ export class RightPanel {
 
       const handle = document.createElement('div');
       handle.className = 'follow-handle';
-      handle.style.cssText = `
-        font-family: 'Noto Sans', monospace, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        color: var(--text-muted);
-        font-size: 13px;
-      `;
       handle.textContent = `@${user.username}`;
 
       info.appendChild(name);
@@ -320,16 +285,6 @@ export class RightPanel {
       // Create follow button
       const button = document.createElement('button');
       button.className = 'follow-button';
-      button.style.cssText = `
-        padding: 6px 16px;
-        border-radius: 20px;
-        border: 1px solid var(--border);
-        background: var(--bg-primary);
-        color: var(--text-primary);
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s ease;
-      `;
       button.textContent = t('right_panel.follow');
 
       button.addEventListener('click', async (e) => {
@@ -337,28 +292,7 @@ export class RightPanel {
         await this.followUser(user.id, item);
       });
 
-      button.addEventListener('mouseenter', () => {
-        button.style.background = 'var(--accent)';
-        button.style.color = 'white';
-        button.style.borderColor = 'var(--accent)';
-      });
-
-      button.addEventListener('mouseleave', () => {
-        button.style.background = 'var(--bg-primary)';
-        button.style.color = 'var(--text-primary)';
-        button.style.borderColor = 'var(--border)';
-      });
-
       // Assemble the item
-      item.style.cssText = `
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 12px 0;
-        border-bottom: 1px solid var(--border);
-        transition: opacity 0.3s ease, transform 0.3s ease;
-      `;
-
       item.appendChild(avatar);
       item.appendChild(info);
       item.appendChild(button);
@@ -381,9 +315,14 @@ export class RightPanel {
       // Remove user from suggestions and fade out the item
       this.userSuggestions = this.userSuggestions.filter((user) => user.id !== userId);
 
-      // Fade out animation
-      itemElement.style.opacity = '0';
-      itemElement.style.transform = 'translateX(20px)';
+      // Morph the button into a success state, then slide the row away
+      const button = itemElement.querySelector('.follow-button');
+      if (button) {
+        button.classList.add('is-done');
+        button.textContent = t('right_panel.following');
+      }
+      // Wait a beat so the success state reads, then animate out
+      setTimeout(() => itemElement.classList.add('is-leaving'), 450);
 
       setTimeout(() => {
         itemElement.remove();
@@ -395,7 +334,7 @@ export class RightPanel {
             followSection.style.display = 'none';
           }
         }
-      }, 300);
+      }, 750);
     } catch (error) {
       console.error('Failed to follow user:', error);
     }

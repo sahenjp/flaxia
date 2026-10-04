@@ -6,6 +6,7 @@ export function createConfirmDialog(message: string): Promise<boolean> {
     const unregister = registerModal();
 
     const overlay = document.createElement('div');
+    overlay.classList.add('playroom-overlay');
     overlay.style.cssText = `
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -17,6 +18,7 @@ export function createConfirmDialog(message: string): Promise<boolean> {
     `;
 
     const dialog = document.createElement('div');
+    dialog.classList.add('playroom-dialog');
     dialog.style.cssText = `
       background: var(--bg-primary);
       border: 1px solid var(--border);
