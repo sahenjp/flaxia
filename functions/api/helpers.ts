@@ -61,12 +61,12 @@ export const requireAdmin = async (c: Context<{ Bindings: Bindings; Variables: V
 // CSRF protection middleware
 export const allowedOrigins = new Set([
   'http://localhost:8787',
+  'http://localhost:3000',
   'http://localhost:5173',
   'https://flaxia.app',
-  'https://sandbox.flaxia.app',
 ]);
 
-export function getBaseOrigin(c: any): string {
+export function getBaseOrigin(c: { env: { BASE_URL?: string } }): string {
   try {
     return new URL(c.env.BASE_URL || 'https://flaxia.app').origin;
   } catch {
@@ -74,7 +74,7 @@ export function getBaseOrigin(c: any): string {
   }
 }
 
-export const csrfProtection = async (c: any, next: any) => {
+export const csrfProtection = async (c: Context<{ Bindings: Bindings; Variables: Variables }>, next: Next) => {
   const method = c.req.method;
   if (method === 'GET' || method === 'HEAD' || method === 'OPTIONS') {
     await next();
@@ -211,6 +211,11 @@ export type ReportCategory =
   | 'nsfw_untagged';
 
 export function getThreshold(category: ReportCategory): number {
+  // No auto-hide may be triggered by a single reporter: a hostile account
+  // could otherwise take down any post with one report. Categories that must
+  // reach moderators fast (csam/malware) raise a critical alert immediately
+  // (see report.ts) while still requiring a second, independent reporter
+  // before the post is hidden.
   const thresholds: Record<ReportCategory, number> = {
     spam: 3,
     harassment: 3,
@@ -218,9 +223,9 @@ export function getThreshold(category: ReportCategory): number {
     misinformation: 3,
     other: 3,
     hate_speech: 3,
-    copyright: 1,
-    csam: 1,
-    malware: 1,
+    copyright: 2,
+    csam: 2,
+    malware: 2,
     privacy: 3,
     nsfw_untagged: 2,
   };
@@ -244,15 +249,18 @@ export async function resolveMentions(
   currentUsername: string,
 ): Promise<string> {
   if (mentionedUsernames.length === 0) return '[]';
-  const placeholders = mentionedUsernames.map(() => '?').join(',');
+  void currentUsername;
+  // Cap: one query with unbounded placeholders plus one push per mention.
+  const capped = mentionedUsernames.slice(0, 10);
+  const placeholders = capped.map(() => '?').join(',');
   const rows = await db
     .prepare(`SELECT id, username FROM users WHERE LOWER(username) IN (${placeholders})`)
-    .bind(...mentionedUsernames.map((u) => u.toLowerCase()))
+    .bind(...capped.map((u) => u.toLowerCase()))
     .all<{ id: string; username: string }>();
   const userMap = new Map(rows.results?.map((r) => [r.username.toLowerCase(), r]) || []);
   // 同一ユーザーが大文字小文字違いなどで複数回メンションされても1件に集約する
   const seenUserIds = new Set<string>();
-  const resolved = mentionedUsernames
+  const resolved = capped
     .map((u) => {
       const user = userMap.get(u.toLowerCase());
       return user ? { username: user.username, user_id: user.id } : null;
