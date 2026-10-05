@@ -23,6 +23,7 @@ export function createPageHeader(options: PageHeaderOptions): HTMLElement {
 
   if (options.onBack) {
     const backBtn = document.createElement('button');
+    backBtn.classList.add('page-header-back');
     backBtn.textContent = '←';
     backBtn.style.cssText = `
       background: none;

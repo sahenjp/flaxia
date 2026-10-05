@@ -44,54 +44,19 @@ interface SettingsPageProps {
 export function createSettingsPage({ currentUser }: SettingsPageProps) {
   const container = document.createElement('div');
   container.className = 'settings-page';
-  container.style.cssText = `
-    max-width: 600px;
-    margin: 0 auto;
-    padding: 0 1rem 2rem;
-  `;
 
   const topBar = document.createElement('div');
-  topBar.style.cssText = `
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.5rem;
-    border-bottom: 1px solid var(--border);
-    position: sticky;
-    top: 0;
-    background: var(--bg-primary);
-    z-index: 10;
-    margin-bottom: 2rem;
-  `;
+  topBar.className = 'settings-topbar';
 
   const backBtn = document.createElement('button');
   backBtn.textContent = '←';
-  backBtn.style.cssText = `
-    background: none;
-    border: none;
-    font-size: 1.25rem;
-    cursor: pointer;
-    color: var(--text-primary);
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
-    transition: background 0.2s;
-  `;
-  backBtn.addEventListener('mouseenter', () => {
-    backBtn.style.background = 'var(--bg-hover, rgba(0,0,0,0.04))';
-  });
-  backBtn.addEventListener('mouseleave', () => {
-    backBtn.style.background = 'none';
-  });
+  backBtn.className = 'settings-back-btn';
+  backBtn.setAttribute('aria-label', t('settings.back') || 'Back');
   backBtn.addEventListener('click', () => window.history.back());
 
   const title = document.createElement('h1');
   title.textContent = t('settings.title');
-  title.style.cssText = `
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin: 0;
-  `;
+  title.className = 'settings-title';
 
   topBar.appendChild(backBtn);
   topBar.appendChild(title);
@@ -101,43 +66,23 @@ export function createSettingsPage({ currentUser }: SettingsPageProps) {
   if (currentUser) {
     const accountSection = document.createElement('div');
     accountSection.className = 'settings-section';
-    accountSection.style.cssText = `
-      margin-bottom: 2rem;
-      padding: 1.5rem;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      background: var(--bg-primary);
-    `;
+    accountSection;
 
     const accountTitle = document.createElement('h2');
     accountTitle.textContent = t('settings.account');
-    accountTitle.style.cssText = `
-      font-size: 1.125rem;
-      font-weight: 600;
-      margin-bottom: 1rem;
-      color: var(--text-primary);
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 0.5rem;
-    `;
+    accountTitle.className = 'settings-section-title';
 
     const userChip = document.createElement('div');
-    userChip.style.cssText = `
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      margin-bottom: 1.5rem;
-    `;
+    userChip.className = 'settings-user-chip';
 
     const avatarUrl = currentUser.avatar_key ? `/api/images/${currentUser.avatar_key}` : '/api/images/default-avatar';
     const displayName = currentUser.display_name || currentUser.username;
 
     const avatarWrap = document.createElement('div');
-    avatarWrap.style.cssText = 'position: relative; width: 60px; height: 60px; flex-shrink: 0;';
+    avatarWrap.className = 'settings-avatar';
     const avatarEl = document.createElement('img');
     avatarEl.src = avatarUrl;
     avatarEl.alt = '';
-    avatarEl.style.cssText =
-      'width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border); display: block;';
     avatarEl.onerror = () => {
       avatarEl.src = '/api/images/default-avatar';
     };
@@ -146,41 +91,26 @@ export function createSettingsPage({ currentUser }: SettingsPageProps) {
     userChip.appendChild(avatarWrap);
 
     const infoDiv = document.createElement('div');
-    infoDiv.style.cssText = 'flex: 1; min-width: 0;';
+    infoDiv.className = 'settings-user-info';
     userChip.appendChild(infoDiv);
 
     const displayNameEl = document.createElement('div');
-    displayNameEl.style.cssText =
-      'font-size: 1.125rem; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;';
+    displayNameEl.className = 'settings-user-name';
     displayNameEl.textContent = displayName;
     infoDiv.appendChild(displayNameEl);
 
     const usernameEl = document.createElement('div');
-    usernameEl.style.cssText =
-      'color: var(--text-muted); font-family: monospace; font-size: 0.875rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;';
+    usernameEl.className = 'settings-user-handle';
     usernameEl.textContent = `@${currentUser.username}`;
     infoDiv.appendChild(usernameEl);
 
+    const btnRow = document.createElement('div');
+    btnRow.className = 'settings-btn-row';
+
     const logoutButton = document.createElement('button');
     logoutButton.textContent = t('auth.sign_out');
-    logoutButton.style.cssText = `
-      background: var(--bg-secondary);
-      color: var(--text-primary);
-      border: 1px solid var(--border);
-      padding: 0.75rem 1.5rem;
-      border-radius: 9999px;
-      cursor: pointer;
-      font-size: 0.875rem;
-      font-weight: 600;
-      transition: all 0.2s;
-    `;
-
-    logoutButton.addEventListener('mouseenter', () => {
-      logoutButton.style.backgroundColor = 'var(--bg-tertiary)';
-    });
-    logoutButton.addEventListener('mouseleave', () => {
-      logoutButton.style.backgroundColor = 'var(--bg-secondary)';
-    });
+    logoutButton.className = 'btn-secondary';
+    btnRow.appendChild(logoutButton);
 
     logoutButton.addEventListener('click', async () => {
       const confirmed = await createConfirmDialog(t('auth.logout_confirm', { username: currentUser.username }));
@@ -205,27 +135,8 @@ export function createSettingsPage({ currentUser }: SettingsPageProps) {
 
     const deleteButton = document.createElement('button');
     deleteButton.textContent = t('settings.delete_account');
-    deleteButton.style.cssText = `
-      background: transparent;
-      color: var(--danger);
-      border: 1px solid var(--danger);
-      padding: 0.75rem 1.5rem;
-      border-radius: 9999px;
-      cursor: pointer;
-      font-size: 0.875rem;
-      font-weight: 600;
-      transition: all 0.2s;
-      margin-top: 1.5rem;
-    `;
-
-    deleteButton.addEventListener('mouseenter', () => {
-      deleteButton.style.backgroundColor = 'var(--danger)';
-      deleteButton.style.color = '#fff';
-    });
-    deleteButton.addEventListener('mouseleave', () => {
-      deleteButton.style.backgroundColor = 'transparent';
-      deleteButton.style.color = 'var(--danger)';
-    });
+    deleteButton.className = 'profile-button profile-button--danger-outline';
+    btnRow.appendChild(deleteButton);
 
     deleteButton.addEventListener('click', async () => {
       const confirmed = await createConfirmDialog(
@@ -252,42 +163,22 @@ export function createSettingsPage({ currentUser }: SettingsPageProps) {
 
     accountSection.appendChild(accountTitle);
     accountSection.appendChild(userChip);
-    accountSection.appendChild(logoutButton);
-    accountSection.appendChild(deleteButton);
+    accountSection.appendChild(btnRow);
     container.appendChild(accountSection);
   }
 
   // Display Section
   const displaySection = document.createElement('div');
   displaySection.className = 'settings-section';
-  displaySection.style.cssText = `
-    margin-bottom: 2rem;
-    padding: 1.5rem;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--bg-primary);
-  `;
 
   const displayTitle = document.createElement('h2');
   displayTitle.textContent = t('settings.display');
-  displayTitle.style.cssText = `
-    font-size: 1.125rem;
-    font-weight: 600;
-    margin-bottom: 1rem;
-    color: var(--text-primary);
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 0.5rem;
-  `;
+  displayTitle.className = 'settings-section-title';
 
   const currentStyle = getReplyStyle();
 
   const radioGroup = document.createElement('div');
-  radioGroup.style.cssText = `
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
-  `;
+  radioGroup.className = 'settings-option-group';
 
   const styles: { value: ReplyStyle; labelKey: string; descKey: string }[] = [
     { value: 'twitter', labelKey: 'settings.reply_style_twitter', descKey: 'settings.reply_style_twitter_desc' },
@@ -296,34 +187,23 @@ export function createSettingsPage({ currentUser }: SettingsPageProps) {
 
   styles.forEach((s) => {
     const label = document.createElement('label');
-    label.style.cssText = `
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      padding: 0.75rem 1rem;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      cursor: pointer;
-      transition: border-color 0.2s;
-      ${currentStyle === s.value ? 'border-color: var(--accent); background: var(--bg-secondary);' : ''}
-    `;
+    label.className = `settings-option${currentStyle === s.value ? ' is-selected' : ''}`;
 
     const radio = document.createElement('input');
     radio.type = 'radio';
     radio.name = 'reply-style';
     radio.value = s.value;
     radio.checked = currentStyle === s.value;
-    radio.style.cssText = 'accent-color: var(--accent);';
 
     const textDiv = document.createElement('div');
-    textDiv.style.cssText = 'display: flex; flex-direction: column;';
+    textDiv.className = 'settings-option-text';
 
     const nameSpan = document.createElement('span');
-    nameSpan.style.cssText = 'font-weight: 600; color: var(--text-primary); font-size: 0.9375rem;';
+    nameSpan.className = 'settings-option-name';
     nameSpan.textContent = t(s.labelKey);
 
     const descSpan = document.createElement('span');
-    descSpan.style.cssText = 'color: var(--text-muted); font-size: 0.8125rem;';
+    descSpan.className = 'settings-option-desc';
     descSpan.textContent = t(s.descKey);
 
     textDiv.appendChild(nameSpan);
@@ -335,44 +215,30 @@ export function createSettingsPage({ currentUser }: SettingsPageProps) {
     radio.addEventListener('change', () => {
       setReplyStyle(s.value);
       radioGroup.querySelectorAll('label').forEach((l) => {
-        l.style.borderColor = 'var(--border)';
-        l.style.background = 'none';
+        l.classList.remove('is-selected');
       });
-      label.style.borderColor = 'var(--accent)';
-      label.style.background = 'var(--bg-secondary)';
+      label.classList.add('is-selected');
       displayMessage.textContent = t('settings.display_saved');
-      displayMessage.style.color = 'var(--success, #10b981)';
     });
   });
 
   // NSFW toggle
   const nsfwLabel = document.createElement('label');
-  nsfwLabel.style.cssText = `
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.75rem 1rem;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    cursor: pointer;
-    transition: border-color 0.2s;
-    margin-bottom: 1rem;
-  `;
+  nsfwLabel.className = `settings-option${getShowNsfw() ? ' is-selected' : ''}`;
 
   const nsfwCheckbox = document.createElement('input');
   nsfwCheckbox.type = 'checkbox';
   nsfwCheckbox.checked = getShowNsfw();
-  nsfwCheckbox.style.cssText = 'accent-color: var(--accent); width: 18px; height: 18px; cursor: pointer;';
 
   const nsfwTextDiv = document.createElement('div');
-  nsfwTextDiv.style.cssText = 'display: flex; flex-direction: column;';
+  nsfwTextDiv.className = 'settings-option-text';
 
   const nsfwNameSpan = document.createElement('span');
-  nsfwNameSpan.style.cssText = 'font-weight: 600; color: var(--text-primary); font-size: 0.9375rem;';
+  nsfwNameSpan.className = 'settings-option-name';
   nsfwNameSpan.textContent = t('settings.nsfw');
 
   const nsfwDescSpan = document.createElement('span');
-  nsfwDescSpan.style.cssText = 'color: var(--text-muted); font-size: 0.8125rem;';
+  nsfwDescSpan.className = 'settings-option-desc';
   nsfwDescSpan.textContent = t('settings.nsfw_desc');
 
   nsfwTextDiv.appendChild(nsfwNameSpan);
@@ -382,29 +248,18 @@ export function createSettingsPage({ currentUser }: SettingsPageProps) {
 
   nsfwCheckbox.addEventListener('change', () => {
     setShowNsfw(nsfwCheckbox.checked);
+    nsfwLabel.classList.toggle('is-selected', nsfwCheckbox.checked);
     displayMessage.textContent = t('settings.display_saved');
-    displayMessage.style.color = 'var(--success, #10b981)';
   });
 
   // Theme selector
   const themeTitle = document.createElement('div');
-  themeTitle.style.cssText = `
-    font-weight: 600;
-    color: var(--text-primary);
-    font-size: 0.9375rem;
-    margin-top: 0.5rem;
-    margin-bottom: 0.5rem;
-  `;
+  themeTitle.className = 'settings-field-label';
   themeTitle.textContent = t('settings.theme');
 
   const currentTheme = getTheme();
   const themeRadioGroup = document.createElement('div');
-  themeRadioGroup.style.cssText = `
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
-  `;
+  themeRadioGroup.className = 'settings-option-group';
 
   const themes: { value: Theme; labelKey: string; descKey: string }[] = [
     { value: 'light', labelKey: 'settings.theme_light', descKey: 'settings.theme_light_desc' },
@@ -414,34 +269,23 @@ export function createSettingsPage({ currentUser }: SettingsPageProps) {
 
   themes.forEach((st) => {
     const label = document.createElement('label');
-    label.style.cssText = `
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      padding: 0.75rem 1rem;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      cursor: pointer;
-      transition: border-color 0.2s;
-      ${currentTheme === st.value ? 'border-color: var(--accent); background: var(--bg-secondary);' : ''}
-    `;
+    label.className = `settings-option${currentTheme === st.value ? ' is-selected' : ''}`;
 
     const radio = document.createElement('input');
     radio.type = 'radio';
     radio.name = 'theme';
     radio.value = st.value;
     radio.checked = currentTheme === st.value;
-    radio.style.cssText = 'accent-color: var(--accent);';
 
     const textDiv = document.createElement('div');
-    textDiv.style.cssText = 'display: flex; flex-direction: column;';
+    textDiv.className = 'settings-option-text';
 
     const nameSpan = document.createElement('span');
-    nameSpan.style.cssText = 'font-weight: 600; color: var(--text-primary); font-size: 0.9375rem;';
+    nameSpan.className = 'settings-option-name';
     nameSpan.textContent = t(st.labelKey);
 
     const descSpan = document.createElement('span');
-    descSpan.style.cssText = 'color: var(--text-muted); font-size: 0.8125rem;';
+    descSpan.className = 'settings-option-desc';
     descSpan.textContent = t(st.descKey);
 
     textDiv.appendChild(nameSpan);
@@ -453,22 +297,15 @@ export function createSettingsPage({ currentUser }: SettingsPageProps) {
     radio.addEventListener('change', () => {
       setTheme(st.value);
       themeRadioGroup.querySelectorAll('label').forEach((l) => {
-        l.style.borderColor = 'var(--border)';
-        l.style.background = 'none';
+        l.classList.remove('is-selected');
       });
-      label.style.borderColor = 'var(--accent)';
-      label.style.background = 'var(--bg-secondary)';
+      label.classList.add('is-selected');
       displayMessage.textContent = t('settings.display_saved');
-      displayMessage.style.color = 'var(--success, #10b981)';
     });
   });
 
   const displayMessage = document.createElement('div');
-  displayMessage.style.cssText = `
-    margin-top: 0.5rem;
-    font-size: 0.875rem;
-    min-height: 1.25rem;
-  `;
+  displayMessage.className = 'settings-saved-note';
 
   displaySection.appendChild(displayTitle);
   displaySection.appendChild(radioGroup);
@@ -482,56 +319,34 @@ export function createSettingsPage({ currentUser }: SettingsPageProps) {
   // Crowd Section (opt in/out of donating browser compute)
   const crowdSection = document.createElement('div');
   crowdSection.className = 'settings-section';
-  crowdSection.style.cssText = `
-    margin-bottom: 2rem;
-    padding: 1.5rem;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--bg-primary);
-  `;
 
   const crowdTitle = document.createElement('h2');
   crowdTitle.textContent = t('settings.crowd');
-  crowdTitle.style.cssText = `
-    font-size: 1.125rem;
-    font-weight: 600;
-    margin-bottom: 1rem;
-    color: var(--text-primary);
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 0.5rem;
-  `;
+  crowdTitle.className = 'settings-section-title';
 
   const nodeAvailable = canRunFlaxiaNode();
 
   const crowdLabel = document.createElement('label');
-  crowdLabel.style.cssText = `
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.75rem 1rem;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    cursor: ${nodeAvailable ? 'pointer' : 'not-allowed'};
-    transition: border-color 0.2s;
-    margin-bottom: 0.5rem;
-    opacity: ${nodeAvailable ? '1' : '0.6'};
-  `;
+  crowdLabel.className = `settings-option${getCrowdConsentState() === 'granted' ? ' is-selected' : ''}`;
+  if (!nodeAvailable) {
+    crowdLabel.style.cursor = 'not-allowed';
+    crowdLabel.style.opacity = '0.6';
+  }
 
   const crowdCheckbox = document.createElement('input');
   crowdCheckbox.type = 'checkbox';
   crowdCheckbox.checked = getCrowdConsentState() === 'granted';
   crowdCheckbox.disabled = !nodeAvailable;
-  crowdCheckbox.style.cssText = 'accent-color: var(--accent); width: 18px; height: 18px; cursor: pointer;';
 
   const crowdTextDiv = document.createElement('div');
-  crowdTextDiv.style.cssText = 'display: flex; flex-direction: column;';
+  crowdTextDiv.className = 'settings-option-text';
 
   const crowdNameSpan = document.createElement('span');
-  crowdNameSpan.style.cssText = 'font-weight: 600; color: var(--text-primary); font-size: 0.9375rem;';
+  crowdNameSpan.className = 'settings-option-name';
   crowdNameSpan.textContent = t('settings.crowd');
 
   const crowdDescSpan = document.createElement('span');
-  crowdDescSpan.style.cssText = 'color: var(--text-muted); font-size: 0.8125rem;';
+  crowdDescSpan.className = 'settings-option-desc';
   crowdDescSpan.textContent = t('settings.crowd_desc');
 
   crowdTextDiv.appendChild(crowdNameSpan);
@@ -540,14 +355,10 @@ export function createSettingsPage({ currentUser }: SettingsPageProps) {
   crowdLabel.appendChild(crowdTextDiv);
 
   const crowdStatus = document.createElement('div');
-  crowdStatus.style.cssText = 'font-size: 0.8125rem; color: var(--text-muted);';
+  crowdStatus.className = 'settings-hint';
 
   const crowdMessage = document.createElement('div');
-  crowdMessage.style.cssText = `
-    margin-top: 0.5rem;
-    font-size: 0.875rem;
-    min-height: 1.25rem;
-  `;
+  crowdMessage.className = 'settings-saved-note';
 
   const updateCrowdStatus = () => {
     if (!nodeAvailable) {
@@ -589,6 +400,7 @@ export function createSettingsPage({ currentUser }: SettingsPageProps) {
       denyCrowdConsent();
       stopCrowdNode();
     }
+    crowdLabel.classList.toggle('is-selected', crowdCheckbox.checked);
     updateCrowdStatus();
     crowdMessage.textContent = t('settings.crowd_saved');
     crowdMessage.style.color = 'var(--success, #10b981)';
@@ -597,6 +409,7 @@ export function createSettingsPage({ currentUser }: SettingsPageProps) {
   // Stay in sync if consent is changed elsewhere (e.g. the consent modal).
   const onCrowdConsentChange = () => {
     crowdCheckbox.checked = getCrowdConsentState() === 'granted';
+    crowdLabel.classList.toggle('is-selected', crowdCheckbox.checked);
     updateCrowdStatus();
   };
   window.addEventListener(CROWD_CONSENT_CHANGE_EVENT, onCrowdConsentChange);
@@ -616,37 +429,13 @@ export function createSettingsPage({ currentUser }: SettingsPageProps) {
   // Language Section
   const languageSection = document.createElement('div');
   languageSection.className = 'settings-section';
-  languageSection.style.cssText = `
-    margin-bottom: 2rem;
-    padding: 1.5rem;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--bg-primary);
-  `;
 
   const languageTitle = document.createElement('h2');
   languageTitle.textContent = t('settings.language');
-  languageTitle.style.cssText = `
-    font-size: 1.125rem;
-    font-weight: 600;
-    margin-bottom: 1rem;
-    color: var(--text-primary);
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 0.5rem;
-  `;
+  languageTitle.className = 'settings-section-title';
 
   const languageSelect = document.createElement('select');
-  languageSelect.style.cssText = `
-    width: 100%;
-    padding: 0.75rem;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    background: var(--bg-input);
-    color: var(--text-primary);
-    font-size: 1rem;
-    margin-bottom: 1rem;
-    cursor: pointer;
-  `;
+  languageSelect.className = 'settings-select';
 
   fetch('/locales/index.json')
     .then((r) => r.json())
@@ -680,120 +469,52 @@ export function createSettingsPage({ currentUser }: SettingsPageProps) {
 
   const languageSaveButton = document.createElement('button');
   languageSaveButton.textContent = t('common.save');
-  languageSaveButton.style.cssText = `
-    background: var(--accent);
-    color: white;
-    border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.875rem;
-    font-weight: 600;
-    transition: opacity 0.2s;
-  `;
+  languageSaveButton.className = 'btn-primary';
 
   const languageMessage = document.createElement('div');
-  languageMessage.style.cssText = `
-    margin-top: 0.5rem;
-    font-size: 0.875rem;
-    min-height: 1.25rem;
-  `;
+  languageMessage.className = 'settings-saved-note';
+
+  const languageBtnRow = document.createElement('div');
+  languageBtnRow.className = 'settings-btn-row';
+  languageBtnRow.appendChild(languageSaveButton);
 
   languageSection.appendChild(languageTitle);
   languageSection.appendChild(languageSelect);
-  languageSection.appendChild(languageSaveButton);
+  languageSection.appendChild(languageBtnRow);
   languageSection.appendChild(languageMessage);
 
   // Email Section
   const emailSection = document.createElement('div');
   emailSection.className = 'settings-section';
-  emailSection.style.cssText = `
-    margin-bottom: 2rem;
-    padding: 1.5rem;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--bg-primary);
-  `;
 
   const emailTitle = document.createElement('h2');
   emailTitle.textContent = t('settings.change_email');
-  emailTitle.style.cssText = `
-    font-size: 1.125rem;
-    font-weight: 600;
-    margin-bottom: 1rem;
-    color: var(--text-primary);
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 0.5rem;
-  `;
+  emailTitle.className = 'settings-section-title';
 
   const currentPasswordLabel = document.createElement('label');
   currentPasswordLabel.textContent = t('settings.email_current_password');
-  currentPasswordLabel.style.cssText = `
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 500;
-    color: var(--text-primary);
-  `;
+  currentPasswordLabel.className = 'settings-field-label';
 
   const currentPasswordInput = document.createElement('input');
   currentPasswordInput.type = 'password';
   currentPasswordInput.placeholder = t('settings.email_current_password_placeholder');
-  currentPasswordInput.style.cssText = `
-    width: 100%;
-    padding: 0.75rem;
-    border: none;
-    border-bottom: 1px solid var(--border);
-    background: var(--bg-input);
-    color: var(--text-primary);
-    font-size: 1rem;
-    margin-bottom: 1rem;
-    border-radius: 0;
-  `;
+  currentPasswordInput.className = 'settings-input';
 
   const newEmailLabel = document.createElement('label');
   newEmailLabel.textContent = t('settings.email_new_email');
-  newEmailLabel.style.cssText = `
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 500;
-    color: var(--text-primary);
-  `;
+  newEmailLabel.className = 'settings-field-label';
 
   const newEmailInput = document.createElement('input');
   newEmailInput.type = 'email';
   newEmailInput.placeholder = t('settings.email_new_email_placeholder');
-  newEmailInput.style.cssText = `
-    width: 100%;
-    padding: 0.75rem;
-    border: none;
-    border-bottom: 1px solid var(--border);
-    background: var(--bg-input);
-    color: var(--text-primary);
-    font-size: 1rem;
-    margin-bottom: 1rem;
-    border-radius: 0;
-  `;
+  newEmailInput.className = 'settings-input';
 
   const emailSaveButton = document.createElement('button');
   emailSaveButton.textContent = t('common.save');
-  emailSaveButton.style.cssText = `
-    background: var(--accent);
-    color: white;
-    border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.875rem;
-    font-weight: 600;
-    transition: opacity 0.2s;
-  `;
+  emailSaveButton.className = 'btn-primary';
 
   const emailMessage = document.createElement('div');
-  emailMessage.style.cssText = `
-    margin-top: 0.5rem;
-    font-size: 0.875rem;
-    min-height: 1.25rem;
-  `;
+  emailMessage.className = 'settings-saved-note';
 
   emailSection.appendChild(emailTitle);
   emailSection.appendChild(currentPasswordLabel);
@@ -806,117 +527,44 @@ export function createSettingsPage({ currentUser }: SettingsPageProps) {
   // Password Section
   const passwordSection = document.createElement('div');
   passwordSection.className = 'settings-section';
-  passwordSection.style.cssText = `
-    margin-bottom: 2rem;
-    padding: 1.5rem;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--bg-primary);
-  `;
 
   const passwordTitle = document.createElement('h2');
   passwordTitle.textContent = t('settings.change_password');
-  passwordTitle.style.cssText = `
-    font-size: 1.125rem;
-    font-weight: 600;
-    margin-bottom: 1rem;
-    color: var(--text-primary);
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 0.5rem;
-  `;
+  passwordTitle.className = 'settings-section-title';
 
   const currentPasswordLabel2 = document.createElement('label');
   currentPasswordLabel2.textContent = t('settings.password_current');
-  currentPasswordLabel2.style.cssText = `
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 500;
-    color: var(--text-primary);
-  `;
+  currentPasswordLabel2.className = 'settings-field-label';
 
   const currentPasswordInput2 = document.createElement('input');
   currentPasswordInput2.type = 'password';
   currentPasswordInput2.placeholder = t('settings.password_current_placeholder');
-  currentPasswordInput2.style.cssText = `
-    width: 100%;
-    padding: 0.75rem;
-    border: none;
-    border-bottom: 1px solid var(--border);
-    background: var(--bg-input);
-    color: var(--text-primary);
-    font-size: 1rem;
-    margin-bottom: 1rem;
-    border-radius: 0;
-  `;
+  currentPasswordInput2.className = 'settings-input';
 
   const newPasswordLabel = document.createElement('label');
   newPasswordLabel.textContent = t('settings.password_new');
-  newPasswordLabel.style.cssText = `
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 500;
-    color: var(--text-primary);
-  `;
+  newPasswordLabel.className = 'settings-field-label';
 
   const newPasswordInput = document.createElement('input');
   newPasswordInput.type = 'password';
   newPasswordInput.placeholder = t('settings.password_new_placeholder');
-  newPasswordInput.style.cssText = `
-    width: 100%;
-    padding: 0.75rem;
-    border: none;
-    border-bottom: 1px solid var(--border);
-    background: var(--bg-input);
-    color: var(--text-primary);
-    font-size: 1rem;
-    margin-bottom: 1rem;
-    border-radius: 0;
-  `;
+  newPasswordInput.className = 'settings-input';
 
   const confirmPasswordLabel = document.createElement('label');
   confirmPasswordLabel.textContent = t('settings.password_confirm');
-  confirmPasswordLabel.style.cssText = `
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 500;
-    color: var(--text-primary);
-  `;
+  confirmPasswordLabel.className = 'settings-field-label';
 
   const confirmPasswordInput = document.createElement('input');
   confirmPasswordInput.type = 'password';
   confirmPasswordInput.placeholder = t('settings.password_confirm_placeholder');
-  confirmPasswordInput.style.cssText = `
-    width: 100%;
-    padding: 0.75rem;
-    border: none;
-    border-bottom: 1px solid var(--border);
-    background: var(--bg-input);
-    color: var(--text-primary);
-    font-size: 1rem;
-    margin-bottom: 1rem;
-    border-radius: 0;
-  `;
+  confirmPasswordInput.className = 'settings-input';
 
   const passwordSaveButton = document.createElement('button');
   passwordSaveButton.textContent = t('common.save');
-  passwordSaveButton.style.cssText = `
-    background: var(--accent);
-    color: white;
-    border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.875rem;
-    font-weight: 600;
-    transition: opacity 0.2s;
-  `;
+  passwordSaveButton.className = 'btn-primary';
 
   const passwordMessage = document.createElement('div');
-  passwordMessage.style.cssText = `
-    margin-top: 0.5rem;
-    font-size: 0.875rem;
-    min-height: 1.25rem;
-  `;
+  passwordMessage.className = 'settings-saved-note';
 
   passwordSection.appendChild(passwordTitle);
   passwordSection.appendChild(currentPasswordLabel2);
@@ -1151,37 +799,23 @@ export function createSettingsPage({ currentUser }: SettingsPageProps) {
   if (currentUser) {
     const emojiSection = document.createElement('div');
     emojiSection.className = 'settings-section';
-    emojiSection.style.cssText = `
-      margin-bottom: 2rem;
-      padding: 1.5rem;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      background: var(--bg-primary);
-    `;
 
     const emojiTitle = document.createElement('h2');
     emojiTitle.textContent = t('settings.custom_emoji') || 'Custom Emoji';
-    emojiTitle.style.cssText = `
-      font-size: 1.125rem;
-      font-weight: 600;
-      margin-bottom: 1rem;
-      color: var(--text-primary);
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 0.5rem;
-    `;
+    emojiTitle.className = 'settings-section-title';
 
     const emojiDesc = document.createElement('p');
     emojiDesc.textContent =
       t('settings.custom_emoji_desc') ||
       'Create custom emoji like :working_me: to use in reactions and messages. Only you can use your custom emoji, but others can see them.';
-    emojiDesc.style.cssText = 'color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1rem;';
+    emojiDesc.className = 'settings-hint settings-desc-block';
 
     const emojiCountRow = document.createElement('div');
-    emojiCountRow.style.cssText = 'display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;';
+    emojiCountRow.className = 'settings-count-row';
     const emojiCountLabel = document.createElement('span');
-    emojiCountLabel.style.cssText = 'font-size: 0.875rem; color: var(--text-muted);';
+    emojiCountLabel.className = 'settings-count-label';
     const emojiCountValue = document.createElement('span');
-    emojiCountValue.style.cssText = 'font-weight: 600; color: var(--text-primary);';
+    emojiCountValue.className = 'settings-count-value';
     emojiCountLabel.textContent = t('settings.custom_emoji_count') || 'Emoji used:';
     emojiCountValue.textContent = '...';
     emojiCountRow.appendChild(emojiCountLabel);
@@ -1189,8 +823,7 @@ export function createSettingsPage({ currentUser }: SettingsPageProps) {
 
     // Stamps list
     const stampsGrid = document.createElement('div');
-    stampsGrid.style.cssText =
-      'display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 0.75rem; width: 100%;';
+    stampsGrid.className = 'settings-stamps-grid';
 
     function loadStamps() {
       fetch('/api/stamps', { credentials: 'include' })
@@ -1201,50 +834,19 @@ export function createSettingsPage({ currentUser }: SettingsPageProps) {
           emojiCountValue.textContent = unlimited ? `${data.stamps.length} / ∞` : `${data.stamps.length} / 5`;
           for (const stamp of data.stamps) {
             const card = document.createElement('div');
-            card.style.cssText = `
-              border: 1px solid var(--border);
-              border-radius: 6px;
-              padding: 0.5rem;
-              text-align: center;
-              background: var(--bg-secondary);
-              overflow: hidden;
-              min-width: 0;
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              position: relative;
-            `;
+            card.className = 'settings-stamp-card';
             const img = document.createElement('img');
             img.src = stamp.url;
             img.alt = stamp.name;
-            img.style.cssText =
-              'width: 48px; height: 48px; object-fit: contain; margin-bottom: 0.25rem; flex-shrink: 0;';
+            img.className = 'settings-stamp-img';
             const label = document.createElement('div');
-            label.style.cssText =
-              'font-size: 0.75rem; color: var(--text-muted); font-family: monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%;';
+            label.className = 'settings-stamp-name';
             label.textContent = stamp.name;
             label.title = stamp.name;
             const delBtn = document.createElement('button');
             delBtn.textContent = '✕';
-            delBtn.style.cssText = `
-              position: absolute;
-              top: 2px;
-              right: 2px;
-              background: var(--danger, #ef4444);
-              color: white;
-              border: none;
-              border-radius: 50%;
-              width: 16px;
-              height: 16px;
-              font-size: 9px;
-              cursor: pointer;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              line-height: 1;
-              padding: 0;
-              flex-shrink: 0;
-            `;
+            delBtn.className = 'settings-stamp-del';
+            delBtn.setAttribute('aria-label', `Delete ${stamp.name}`);
             delBtn.addEventListener('click', async () => {
               if (!confirm(t('settings.custom_emoji_delete_confirm', { name: stamp.name }) || `Delete ${stamp.name}?`))
                 return;
@@ -1259,27 +861,12 @@ export function createSettingsPage({ currentUser }: SettingsPageProps) {
 
           // Add "add" card
           const addCard = document.createElement('div');
-          addCard.style.cssText = `
-            border: 2px dashed var(--border);
-            border-radius: 6px;
-            padding: 0.5rem;
-            text-align: center;
-            background: var(--bg-secondary);
-            min-width: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            gap: 0.25rem;
-            min-height: 80px;
-            transition: border-color 0.2s, background 0.2s;
-          `;
+          addCard.className = 'settings-stamp-add';
           const addIcon = document.createElement('div');
           addIcon.textContent = '+';
-          addIcon.style.cssText = 'font-size: 1.5rem; line-height: 1; color: var(--text-muted);';
+          addIcon.className = 'settings-stamp-add-icon';
           const addLabel = document.createElement('div');
-          addLabel.style.cssText = 'font-size: 0.75rem; color: var(--text-muted);';
+          addLabel.className = 'settings-stamp-add-label';
           addLabel.textContent = t('settings.add_stamp_tap_to_add') || 'Tap to add';
           addCard.appendChild(addIcon);
           addCard.appendChild(addLabel);
@@ -1317,43 +904,23 @@ export function createSettingsPage({ currentUser }: SettingsPageProps) {
   if (currentUser) {
     const billingSection = document.createElement('div');
     billingSection.className = 'settings-section';
-    billingSection.style.cssText = `
-      margin-bottom: 2rem;
-      padding: 1.5rem;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      background: var(--bg-primary);
-    `;
 
     const billingTitle = document.createElement('h2');
     billingTitle.textContent = t('settings.billing') || 'Billing & Plans';
-    billingTitle.style.cssText = `
-      font-size: 1.125rem;
-      font-weight: 600;
-      margin-bottom: 1rem;
-      color: var(--text-primary);
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 0.5rem;
-    `;
+    billingTitle.className = 'settings-section-title';
     billingSection.appendChild(billingTitle);
 
     // Current plan display
     const planInfo = document.createElement('div');
-    planInfo.style.cssText = `
-      padding: 1rem;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      margin-bottom: 1rem;
-      background: var(--bg-secondary);
-    `;
+    planInfo.className = 'settings-plan-info';
     const planLabel = document.createElement('div');
-    planLabel.style.cssText = 'font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.5rem;';
+    planLabel.className = 'settings-field-label';
     planLabel.textContent = t('settings.current_plan') || 'Current Plan';
     const planName = document.createElement('div');
-    planName.style.cssText = 'font-weight: 600; font-size: 1.125rem; color: var(--text-primary);';
+    planName.className = 'settings-plan-name';
     planName.textContent = t('settings.loading') || 'Loading...';
     const planMeta = document.createElement('div');
-    planMeta.style.cssText = 'font-size: 0.8125rem; color: var(--text-secondary); margin-top: 0.35rem;';
+    planMeta.className = 'settings-hint';
     planInfo.appendChild(planLabel);
     planInfo.appendChild(planName);
     planInfo.appendChild(planMeta);
@@ -1361,28 +928,23 @@ export function createSettingsPage({ currentUser }: SettingsPageProps) {
 
     // Flaxia+ plan card
     const plusCard = document.createElement('div');
-    plusCard.style.cssText = `
-      border: 2px solid var(--border);
-      border-radius: 8px;
-      padding: 1rem;
-      margin-bottom: 1rem;
-    `;
+    plusCard.className = 'settings-plus-card';
     const plusName = document.createElement('div');
-    plusName.style.cssText = 'font-weight: 700; font-size: 1rem; color: #8b5cf6; margin-bottom: 0.25rem;';
+    plusName.className = 'settings-plus-name';
     plusName.textContent = 'Flaxia+';
     const plusPrice = document.createElement('div');
-    plusPrice.style.cssText = 'margin-bottom: 0.75rem;';
+    plusPrice.className = 'settings-plus-price';
     const plusPriceNum = document.createElement('span');
-    plusPriceNum.style.cssText = 'font-size: 1.5rem; font-weight: 700; color: var(--text-primary);';
+    plusPriceNum.className = 'settings-plus-price-num';
     plusPriceNum.textContent = '¥300';
     const plusPricePeriod = document.createElement('span');
-    plusPricePeriod.style.cssText = 'font-size: 0.875rem; color: var(--text-muted);';
+    plusPricePeriod.className = 'settings-plus-price-period';
     plusPricePeriod.textContent = '/mo';
     plusPrice.appendChild(plusPriceNum);
     plusPrice.appendChild(plusPricePeriod);
 
     const plusFeatures = document.createElement('ul');
-    plusFeatures.style.cssText = 'list-style: none; padding: 0; margin: 0 0 0.5rem;';
+    plusFeatures.className = 'settings-plus-features';
     const plusFeatureLabels = [
       t('settings.plan_plus_f1') || 'Unlimited custom stamps',
       t('settings.plan_plus_f2') || 'GIF & MP4 stamps/icons/intro',
@@ -1390,30 +952,12 @@ export function createSettingsPage({ currentUser }: SettingsPageProps) {
     ];
     plusFeatureLabels.forEach((feature) => {
       const li = document.createElement('li');
-      li.style.cssText = 'font-size: 0.8125rem; color: var(--text-secondary); padding: 0.25rem 0;';
       li.textContent = `✓ ${feature}`;
       plusFeatures.appendChild(li);
     });
 
     const actionBtn = document.createElement('button');
-    actionBtn.style.cssText = `
-      width: 100%;
-      padding: 0.5rem;
-      border: none;
-      border-radius: 6px;
-      background: #8b5cf6;
-      color: white;
-      font-weight: 600;
-      font-size: 0.875rem;
-      cursor: pointer;
-      transition: opacity 0.2s;
-    `;
-    actionBtn.addEventListener('mouseenter', () => {
-      if (!actionBtn.disabled) actionBtn.style.opacity = '0.85';
-    });
-    actionBtn.addEventListener('mouseleave', () => {
-      if (!actionBtn.disabled) actionBtn.style.opacity = '1';
-    });
+    actionBtn.className = 'settings-plus-btn';
 
     plusCard.appendChild(plusName);
     plusCard.appendChild(plusPrice);
@@ -1424,11 +968,10 @@ export function createSettingsPage({ currentUser }: SettingsPageProps) {
     // Billing history
     const historySection = document.createElement('div');
     const historyTitle = document.createElement('div');
-    historyTitle.style.cssText =
-      'font-weight: 600; font-size: 0.9375rem; color: var(--text-primary); margin: 0.5rem 0;';
+    historyTitle.className = 'settings-field-label';
     historyTitle.textContent = t('settings.billing_history') || 'Billing History';
     const historyList = document.createElement('div');
-    historyList.style.cssText = 'display: flex; flex-direction: column; gap: 0.5rem;';
+    historyList.className = 'settings-history-list';
     historyList.textContent = t('settings.loading') || 'Loading...';
     historySection.appendChild(historyTitle);
     historySection.appendChild(historyList);
@@ -1525,7 +1068,7 @@ export function createSettingsPage({ currentUser }: SettingsPageProps) {
       historyList.textContent = '';
       if (transactions.length === 0) {
         const empty = document.createElement('div');
-        empty.style.cssText = 'font-size: 0.8125rem; color: var(--text-muted);';
+        empty.className = 'settings-hint';
         empty.textContent = t('settings.no_billing_history') || 'No payments yet';
         historyList.appendChild(empty);
         return;
@@ -1537,8 +1080,7 @@ export function createSettingsPage({ currentUser }: SettingsPageProps) {
       };
       transactions.slice(0, 10).forEach((tx) => {
         const row = document.createElement('div');
-        row.style.cssText =
-          'display: flex; justify-content: space-between; gap: 0.5rem; font-size: 0.8125rem; color: var(--text-secondary); border-bottom: 1px solid var(--border); padding-bottom: 0.35rem;';
+        row.className = 'settings-history-row';
         const left = document.createElement('div');
         const datePart = formatDate((tx.createdAt as string) || null);
         const namePart = (tx.planName as string) || (tx.type as string) || '';

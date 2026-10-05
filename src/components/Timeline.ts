@@ -83,6 +83,13 @@ export class Timeline {
     const feedToggle = this.createFeedToggle();
     timelineHeader.appendChild(feedToggle);
 
+    const reloadBtn = document.createElement('button');
+    reloadBtn.className = 'feed-reload-btn';
+    reloadBtn.textContent = t('timeline.reload');
+    reloadBtn.title = t('timeline.reload_title');
+    reloadBtn.setAttribute('aria-label', t('timeline.reload_title'));
+    timelineHeader.appendChild(reloadBtn);
+
     container.appendChild(timelineHeader);
 
     // Post composer directly below the header (only for logged-in users);
@@ -158,12 +165,6 @@ export class Timeline {
       globalBtn.classList.add('active');
     }
     container.appendChild(globalBtn);
-
-    const reloadBtn = document.createElement('button');
-    reloadBtn.className = 'feed-toggle-btn feed-reload-btn';
-    reloadBtn.textContent = t('timeline.reload');
-    reloadBtn.title = t('timeline.reload_title');
-    container.appendChild(reloadBtn);
 
     return container;
   }
@@ -267,10 +268,10 @@ export class Timeline {
     // Feed toggle
     this.element.addEventListener('click', (e) => {
       const target = e.target as HTMLElement;
-      if (target.classList.contains('feed-toggle-btn')) {
-        if (target.classList.contains('feed-reload-btn')) {
-          this.reloadPosts();
-        } else if (target.classList.contains('feed-menu-btn')) {
+      if (target.classList.contains('feed-reload-btn')) {
+        this.reloadPosts();
+      } else if (target.classList.contains('feed-toggle-btn')) {
+        if (target.classList.contains('feed-menu-btn')) {
           // Emit event to open left nav on mobile
           this.element.dispatchEvent(
             new CustomEvent('openLeftNav', {
@@ -336,7 +337,12 @@ export class Timeline {
     const postCard = this.buildPostCard(post);
 
     this.postCards.set(post.id, postCard);
-    postList.insertBefore(postCard.getElement(), this.headSentinel.nextSibling);
+    const element = postCard.getElement();
+    // Pop the fresh post in at the top, then clean up the class
+    // so it never replays on scroll-restore.
+    element.classList.add('feed-fresh');
+    element.addEventListener('animationend', () => element.classList.remove('feed-fresh'), { once: true });
+    postList.insertBefore(element, this.headSentinel.nextSibling);
     this.updateLoadMoreButton();
   }
 
@@ -387,6 +393,10 @@ export class Timeline {
   }
 
   private reloadPosts(): void {
+    const reloadBtn = this.element.querySelector('.feed-reload-btn');
+    reloadBtn?.classList.add('is-loading');
+    // The spinner is decorative; always clear it even if the fetch hangs.
+    window.setTimeout(() => reloadBtn?.classList.remove('is-loading'), 4000);
     this.resetAndLoadPosts();
   }
 
@@ -567,6 +577,7 @@ export class Timeline {
 
       this.state.hasMore = postsArray.length === 20;
       this.renderPostList();
+      this.element.querySelector('.feed-reload-btn')?.classList.remove('is-loading');
 
       // Dispatch ready event for scroll restoration
       this.element.dispatchEvent(new CustomEvent('timelineReady'));
@@ -731,6 +742,16 @@ export class Timeline {
 
     // Add all content at once for better performance
     postList.appendChild(fragment);
+
+    // One-shot staggered entrance for the first paint only.
+    // The class is removed right after so scroll-restore / prune
+    // cycles never replay the animation.
+    const cards = postList.querySelectorAll(':scope > .post-card');
+    cards.forEach((card, index) => {
+      (card as HTMLElement).style.setProperty('--i', String(Math.min(index, 9)));
+    });
+    postList.classList.add('feed-enter');
+    window.setTimeout(() => postList.classList.remove('feed-enter'), 1000);
 
     // Now replace placeholders with actual ads
     setTimeout(() => {

@@ -11,6 +11,7 @@ export function createModalOverlay(dialogMaxWidth = '420px'): ModalOverlay {
   const unregister = registerModal();
 
   const overlay = document.createElement('div');
+  overlay.classList.add('playroom-overlay');
   overlay.style.cssText = `
     position: fixed;
     top: 0;
@@ -25,6 +26,7 @@ export function createModalOverlay(dialogMaxWidth = '420px'): ModalOverlay {
   `;
 
   const dialog = document.createElement('div');
+  dialog.classList.add('playroom-dialog');
   dialog.style.cssText = `
     background: var(--bg-primary);
     border: 1px solid var(--border);
@@ -58,6 +60,7 @@ export interface MenuItemConfig {
 
 export function createMenuItem(config: MenuItemConfig): HTMLButtonElement {
   const item = document.createElement('button');
+  item.classList.add('playroom-menu-item');
   item.style.cssText = `
     display: block;
     width: 100%;

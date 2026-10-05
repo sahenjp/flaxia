@@ -485,15 +485,17 @@ export class PostComposer {
     };
     const attachToggle = this.element.querySelector('.composer-attach-menu-toggle') as HTMLButtonElement;
     const attachMenu = this.element.querySelector('.composer-attach-menu') as HTMLElement;
+    const setAttachMenu = (open: boolean): void => {
+      attachMenu.style.display = open ? 'block' : 'none';
+      attachMenu.classList.toggle('is-open', open);
+      attachToggle.setAttribute('aria-expanded', String(open));
+    };
     attachToggle.addEventListener('click', (event) => {
       event.stopPropagation();
-      const open = attachMenu.style.display !== 'block';
-      attachMenu.style.display = open ? 'block' : 'none';
-      attachToggle.setAttribute('aria-expanded', String(open));
+      setAttachMenu(attachMenu.style.display !== 'block');
     });
     this.element.querySelector('.composer-poll-button')?.addEventListener('click', () => {
-      attachMenu.style.display = 'none';
-      attachToggle.setAttribute('aria-expanded', 'false');
+      setAttachMenu(false);
       this.togglePollSection();
     });
     fileButtons.forEach((btn) => {
@@ -504,8 +506,7 @@ export class PostComposer {
         const slot = /composer-file-button--([a-z]+)/.exec(btnEl.className)?.[1] ?? 'image';
         const accept = accepts[slot] ?? accepts.image;
         this.fileInput.accept = accept;
-        attachMenu.style.display = 'none';
-        attachToggle.setAttribute('aria-expanded', 'false');
+        setAttachMenu(false);
         // Media picks are multi-select; games remain a single file
         this.fileInput.multiple = slot !== 'game';
         this.fileInput.click();

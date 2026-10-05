@@ -9,6 +9,7 @@ import {
   FileText,
   Flag,
   Gamepad2,
+  HelpCircle,
   Home,
   type IconNode,
   ImagePlus,
@@ -18,6 +19,7 @@ import {
   MessageCircle,
   Music2,
   Pencil,
+  Plus,
   Quote,
   Save,
   Search,
@@ -65,7 +67,9 @@ export type IconName =
   | 'maximize'
   | 'flag'
   | 'warning'
-  | 'edit';
+  | 'edit'
+  | 'help'
+  | 'plus';
 
 const ICON_NODES: Record<IconName, IconNode> = {
   fresh: Leaf,
@@ -101,6 +105,8 @@ const ICON_NODES: Record<IconName, IconNode> = {
   flag: Flag,
   warning: AlertTriangle,
   edit: Pencil,
+  help: HelpCircle,
+  plus: Plus,
 };
 
 export function icon(name: IconName, attrs: Record<string, string> = {}): SVGElement {

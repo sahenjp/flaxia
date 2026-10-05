@@ -1,120 +1,51 @@
 export function createSkeletonCard(): HTMLElement {
   const container = document.createElement('article');
   container.className = 'skeleton-card';
-  container.style.cssText = `
-    background: var(--bg-primary);
-    border-bottom: 1px solid var(--border);
-    padding: 1rem;
-    animation: skeleton-pulse 1.5s ease-in-out infinite alternate;
-  `;
+  container.setAttribute('aria-hidden', 'true');
 
   // Header skeleton
   const header = document.createElement('div');
-  header.style.cssText = `
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 0.75rem;
-  `;
+  header.className = 'skeleton-header';
 
   // Avatar skeleton
   const avatar = document.createElement('div');
-  avatar.className = 'skeleton-avatar';
-  avatar.style.cssText = `
-    width: 40px;
-    height: 40px;
-    background: linear-gradient(90deg, var(--bg-input) 25%, var(--bg-secondary) 50%, var(--bg-input) 75%);
-    background-size: 200% 100%;
-    border-radius: 50%;
-    animation: skeleton-shimmer 1.5s infinite;
-  `;
+  avatar.className = 'skeleton-avatar skeleton-shimmer';
 
   // User info skeleton
   const userInfo = document.createElement('div');
-  userInfo.style.cssText = `
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-  `;
+  userInfo.className = 'skeleton-user-info';
 
   const username = document.createElement('div');
-  username.style.cssText = `
-    width: 120px;
-    height: 16px;
-    background: linear-gradient(90deg, var(--bg-input) 25%, var(--bg-secondary) 50%, var(--bg-input) 75%);
-    background-size: 200% 100%;
-    border-radius: 4px;
-    animation: skeleton-shimmer 1.5s infinite;
-  `;
+  username.className = 'skeleton-line skeleton-shimmer skeleton-line--name';
 
   const timestamp = document.createElement('div');
-  timestamp.style.cssText = `
-    width: 80px;
-    height: 12px;
-    background: linear-gradient(90deg, var(--bg-input) 25%, var(--bg-secondary) 50%, var(--bg-input) 75%);
-    background-size: 200% 100%;
-    border-radius: 4px;
-    animation: skeleton-shimmer 1.5s infinite;
-  `;
+  timestamp.className = 'skeleton-line skeleton-shimmer skeleton-line--time';
 
   userInfo.appendChild(username);
   userInfo.appendChild(timestamp);
 
   // Text content skeleton
   const textSkeleton = document.createElement('div');
-  textSkeleton.style.cssText = `
-    margin-bottom: 1rem;
-  `;
+  textSkeleton.className = 'skeleton-text';
 
   // Create multiple text lines
   for (let i = 0; i < 3; i++) {
     const line = document.createElement('div');
-    const width = i === 2 ? '60%' : '100%'; // Last line shorter
-    line.style.cssText = `
-      width: ${width};
-      height: 16px;
-      background: linear-gradient(90deg, var(--bg-input) 25%, var(--bg-secondary) 50%, var(--bg-input) 75%);
-      background-size: 200% 100%;
-      border-radius: 4px;
-      margin-bottom: 0.5rem;
-      animation: skeleton-shimmer 1.5s infinite;
-    `;
+    line.className = `skeleton-line skeleton-shimmer${i === 2 ? ' skeleton-line--short' : ''}`;
     textSkeleton.appendChild(line);
   }
 
   // Media skeleton (16:9 aspect ratio)
   const mediaSkeleton = document.createElement('div');
-  mediaSkeleton.className = 'skeleton-media';
-  mediaSkeleton.style.cssText = `
-    width: 100%;
-    padding-bottom: 56.25%; /* 16:9 aspect ratio */
-    background: linear-gradient(90deg, var(--bg-input) 25%, var(--bg-secondary) 50%, var(--bg-input) 75%);
-    background-size: 200% 100%;
-    border-radius: 8px;
-    margin-bottom: 1rem;
-    animation: skeleton-shimmer 1.5s infinite;
-    position: relative;
-  `;
+  mediaSkeleton.className = 'skeleton-media skeleton-shimmer';
 
   // Actions skeleton
   const actions = document.createElement('div');
-  actions.style.cssText = `
-    display: flex;
-    gap: 1rem;
-    align-items: center;
-  `;
+  actions.className = 'skeleton-actions';
 
   const createActionButton = () => {
     const button = document.createElement('div');
-    button.style.cssText = `
-      width: 60px;
-      height: 20px;
-      background: linear-gradient(90deg, var(--bg-input) 25%, var(--bg-secondary) 50%, var(--bg-input) 75%);
-      background-size: 200% 100%;
-      border-radius: 4px;
-      animation: skeleton-shimmer 1.5s infinite;
-    `;
+    button.className = 'skeleton-action skeleton-shimmer';
     return button;
   };
 
@@ -137,11 +68,7 @@ export function createSkeletonCard(): HTMLElement {
 export function createSkeletonPost(): HTMLElement {
   const container = document.createElement('div');
   container.className = 'skeleton-post';
-  container.style.cssText = `
-    width: 100%;
-    max-width: 600px;
-    margin: 0 auto;
-  `;
+  container.setAttribute('aria-hidden', 'true');
 
   // Add multiple skeleton cards
   for (let i = 0; i < 3; i++) {

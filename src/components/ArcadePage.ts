@@ -158,67 +158,26 @@ export class ArcadePage {
   private createElement(): HTMLElement {
     const container = document.createElement('div');
     container.className = 'arcade-page';
-    container.style.cssText = `
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      background: var(--bg-primary);
-      position: relative;
-    `;
 
     // Header
     const header = document.createElement('div');
     header.className = 'arcade-header';
-    header.style.cssText = `
-      padding: 0.4rem 0.75rem;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    `;
 
     if (this.props.onBack) {
       const backBtn = document.createElement('button');
       backBtn.className = 'arcade-back-btn';
       backBtn.textContent = t('arcade.back_home');
       backBtn.title = t('arcade.back_home');
-      backBtn.style.cssText = `
-        background: none;
-        border: none;
-        font-size: 0.85rem;
-        cursor: pointer;
-        color: var(--text-primary);
-        padding: 0.15rem 0.35rem;
-        border-radius: 4px;
-        line-height: 1;
-        transition: background 0.2s;
-      `;
-      backBtn.addEventListener('mouseenter', () => {
-        backBtn.style.background = 'var(--bg-hover, rgba(255,255,255,0.1))';
-      });
-      backBtn.addEventListener('mouseleave', () => {
-        backBtn.style.background = 'none';
-      });
       backBtn.addEventListener('click', () => this.props.onBack?.());
       header.appendChild(backBtn);
     }
 
     const titleGroup = document.createElement('div');
-    titleGroup.style.cssText = 'display: flex; flex-direction: column;';
+    titleGroup.className = 'arcade-title-group';
 
     const title = document.createElement('h1');
-    title.style.cssText = `
-      margin: 0;
-      font-size: 1rem;
-      font-weight: 600;
-      color: var(--text-primary);
-      white-space: nowrap;
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-    `;
-    const titleIcon = icon('arcade', { width: '18', height: '18' });
+    title.className = 'arcade-title';
+    const titleIcon = icon('arcade', { width: '20', height: '20' });
     const titleText = document.createElement('span');
     titleText.textContent = t('arcade.title');
     title.appendChild(titleIcon);
@@ -229,56 +188,22 @@ export class ArcadePage {
 
     // Spacer to push upload/tutorial buttons to the right
     const headerSpacer = document.createElement('div');
-    headerSpacer.style.cssText = 'flex: 1;';
+    headerSpacer.className = 'arcade-header-spacer';
 
     // Upload game button
     const uploadBtn = document.createElement('button');
-    uploadBtn.textContent = t('arcade.upload_btn');
+    uploadBtn.className = 'arcade-icon-btn';
+    uploadBtn.appendChild(icon('plus', { width: '20', height: '20' }));
     uploadBtn.title = t('arcade.upload_title');
-    uploadBtn.style.cssText = `
-      background: none;
-      border: none;
-      font-size: 1.2rem;
-      cursor: pointer;
-      color: var(--text-muted);
-      padding: 0.25rem 0.5rem;
-      border-radius: 4px;
-      line-height: 1;
-      transition: color 0.2s, background 0.2s;
-    `;
-    uploadBtn.addEventListener('mouseenter', () => {
-      uploadBtn.style.color = 'var(--text-primary)';
-      uploadBtn.style.background = 'var(--bg-hover, rgba(255,255,255,0.1))';
-    });
-    uploadBtn.addEventListener('mouseleave', () => {
-      uploadBtn.style.color = 'var(--text-muted)';
-      uploadBtn.style.background = 'none';
-    });
+    uploadBtn.setAttribute('aria-label', t('arcade.upload_title'));
     uploadBtn.addEventListener('click', () => this.handleUploadClick());
 
     // Tutorial button
     const tutorialBtn = document.createElement('button');
-    tutorialBtn.textContent = t('arcade.tutorial_btn');
+    tutorialBtn.className = 'arcade-icon-btn';
+    tutorialBtn.appendChild(icon('help', { width: '20', height: '20' }));
     tutorialBtn.title = 'Tutorial';
-    tutorialBtn.style.cssText = `
-      background: none;
-      border: none;
-      font-size: 1.2rem;
-      cursor: pointer;
-      color: var(--text-muted);
-      padding: 0.25rem 0.5rem;
-      border-radius: 4px;
-      line-height: 1;
-      transition: color 0.2s, background 0.2s;
-    `;
-    tutorialBtn.addEventListener('mouseenter', () => {
-      tutorialBtn.style.color = 'var(--text-primary)';
-      tutorialBtn.style.background = 'var(--bg-hover, rgba(255,255,255,0.1))';
-    });
-    tutorialBtn.addEventListener('mouseleave', () => {
-      tutorialBtn.style.color = 'var(--text-muted)';
-      tutorialBtn.style.background = 'none';
-    });
+    tutorialBtn.setAttribute('aria-label', 'Tutorial');
     tutorialBtn.addEventListener('click', () => this.showTutorial());
 
     header.appendChild(headerSpacer);
@@ -288,97 +213,29 @@ export class ArcadePage {
     // Game container (vertical scroll area)
     const gameContainer = document.createElement('div');
     gameContainer.className = 'arcade-game-container';
-    gameContainer.style.cssText = `
-      flex: 1;
-      position: relative;
-      overflow: hidden;
-    `;
 
     // Navigation arrows
     const navUp = document.createElement('button');
     navUp.className = 'arcade-nav arcade-nav-up';
     navUp.innerHTML = '▲';
-    navUp.style.cssText = `
-      position: absolute;
-      top: 1rem;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-      border: none;
-      background: rgba(0, 0, 0, 0.5);
-      color: white;
-      font-size: 1.25rem;
-      cursor: pointer;
-      z-index: 10;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0.7;
-      transition: opacity 0.2s;
-    `;
-    navUp.addEventListener('mouseenter', () => (navUp.style.opacity = '1'));
-    navUp.addEventListener('mouseleave', () => (navUp.style.opacity = '0.7'));
+    navUp.setAttribute('aria-label', t('arcade.prev_game') || 'Previous game');
     navUp.addEventListener('click', () => this.navigateToPrevious());
 
     const navDown = document.createElement('button');
     navDown.className = 'arcade-nav arcade-nav-down';
     navDown.innerHTML = '▼';
-    navDown.style.cssText = `
-      position: absolute;
-      bottom: 1rem;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-      border: none;
-      background: rgba(0, 0, 0, 0.5);
-      color: white;
-      font-size: 1.25rem;
-      cursor: pointer;
-      z-index: 10;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0.7;
-      transition: opacity 0.2s;
-    `;
-    navDown.addEventListener('mouseenter', () => (navDown.style.opacity = '1'));
-    navDown.addEventListener('mouseleave', () => (navDown.style.opacity = '0.7'));
+    navDown.setAttribute('aria-label', t('arcade.next_game') || 'Next game');
     navDown.addEventListener('click', () => this.navigateToNext());
 
     // Loading indicator
     const loadingIndicator = document.createElement('div');
     loadingIndicator.className = 'arcade-loading';
-    loadingIndicator.style.cssText = `
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 1rem;
-      display: none;
-    `;
 
     const loaderSpinner = document.createElement('div');
-    loaderSpinner.style.cssText = `
-      width: 40px;
-      height: 40px;
-      border: 3px solid var(--border);
-      border-top-color: var(--text-muted);
-      border-radius: 50%;
-      animation: arcade-spin 0.8s linear infinite;
-    `;
+    loaderSpinner.className = 'arcade-spinner';
 
     const loaderText = document.createElement('div');
-    loaderText.style.cssText = `
-      font-size: 1.5rem;
-      color: var(--text-muted);
-    `;
+    loaderText.className = 'arcade-loading-text';
     loaderText.textContent = t('arcade.loading');
 
     loadingIndicator.appendChild(loaderSpinner);
@@ -391,22 +248,13 @@ export class ArcadePage {
     // Empty state
     const emptyState = document.createElement('div');
     emptyState.className = 'arcade-empty';
-    emptyState.style.cssText = `
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      text-align: center;
-      color: var(--text-muted);
-      display: none;
-    `;
     const emptyIcon = icon('game', { width: '64', height: '64' });
-    emptyIcon.style.cssText = 'margin-bottom: 1rem; opacity: 0.6;';
+    emptyIcon.classList.add('arcade-empty-icon');
     const emptyTitle = document.createElement('div');
-    emptyTitle.style.cssText = 'font-size: 1.25rem; margin-bottom: 0.5rem;';
+    emptyTitle.className = 'arcade-empty-title';
     emptyTitle.textContent = t('arcade.no_games_title');
     const emptySub = document.createElement('div');
-    emptySub.style.cssText = 'font-size: 0.875rem;';
+    emptySub.className = 'arcade-empty-sub';
     emptySub.textContent = t('arcade.no_games_subtitle');
     emptyState.appendChild(emptyIcon);
     emptyState.appendChild(emptyTitle);
@@ -757,47 +605,18 @@ export class ArcadePage {
 
     // Create game viewport with initial animation state
     const viewport = document.createElement('div');
-    viewport.className = 'arcade-viewport';
-    viewport.style.cssText = `
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      display: flex;
-      flex-direction: column;
-      background: var(--bg-primary);
-      transform: translateY(100%);
-      opacity: 0;
-      transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.4s ease;
-    `;
+    viewport.className = 'arcade-viewport arcade-viewport--entering';
 
     // Game info overlay
     const infoOverlay = document.createElement('div');
     infoOverlay.className = 'arcade-game-info';
-    infoOverlay.style.cssText = `
-      position: absolute;
-      bottom: 80px;
-      left: 1rem;
-      right: 100px;
-      z-index: 5;
-      color: white;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.8);
-    `;
 
     const gameTitle = document.createElement('div');
-    gameTitle.style.cssText = `
-      font-size: 1.25rem;
-      font-weight: 600;
-      margin-bottom: 0.25rem;
-    `;
+    gameTitle.className = 'arcade-game-title';
     gameTitle.textContent = game.title || t('arcade.game_by', { username: game.username });
 
     const gameAuthor = document.createElement('div');
-    gameAuthor.style.cssText = `
-      font-size: 0.875rem;
-      opacity: 0.9;
-    `;
+    gameAuthor.className = 'arcade-game-author';
     gameAuthor.textContent = t('arcade.game_author', { username: game.username });
 
     infoOverlay.appendChild(gameTitle);
@@ -806,14 +625,6 @@ export class ArcadePage {
     // Game execution area
     const gameArea = document.createElement('div');
     gameArea.className = 'arcade-game-area';
-    gameArea.style.cssText = `
-      flex: 1;
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-    `;
 
     viewport.appendChild(gameArea);
     viewport.appendChild(infoOverlay);
@@ -830,8 +641,7 @@ export class ArcadePage {
 
     // Animate in the new game
     requestAnimationFrame(() => {
-      viewport.style.transform = 'translateY(0)';
-      viewport.style.opacity = '1';
+      viewport.classList.remove('arcade-viewport--entering');
     });
 
     // Preload next game if available
@@ -843,15 +653,6 @@ export class ArcadePage {
   private createFloatingActions(game: Game): HTMLElement {
     const container = document.createElement('div');
     container.className = 'arcade-floating-actions';
-    container.style.cssText = `
-      position: absolute;
-      right: 1rem;
-      bottom: 1.5rem;
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-      z-index: 10;
-    `;
 
     // Fresh button
     const freshBtn = this.createActionButton(
@@ -1016,46 +817,24 @@ export class ArcadePage {
 
     const overlay = document.createElement('div');
     this.commentPanel = overlay;
-    overlay.style.cssText = `
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-    `;
+    overlay.className = 'arcade-modal-overlay';
     document.body.appendChild(overlay);
 
     const dialog = document.createElement('div');
-    dialog.style.cssText = `
-      background: var(--bg-primary);
-      border-radius: 12px;
-      max-width: 500px;
-      width: 90%;
-      max-height: 80vh;
-      display: flex;
-      flex-direction: column;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    `;
+    dialog.className = 'arcade-modal-dialog';
+    dialog.setAttribute('role', 'dialog');
+    dialog.setAttribute('aria-modal', 'true');
     overlay.appendChild(dialog);
 
     // Header
     const header = document.createElement('div');
-    header.style.cssText = `
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0.75rem 1rem;
-      border-bottom: 1px solid var(--border);
-      flex-shrink: 0;
-    `;
+    header.className = 'arcade-modal-header';
     const headerTitle = document.createElement('span');
-    headerTitle.style.cssText = 'font-weight: 600; font-size: 0.95rem; color: var(--text-primary);';
+    headerTitle.className = 'arcade-modal-title';
     headerTitle.textContent = `${t('thread_view.title')} (${formatCount(game.replyCount || 0)})`;
     const closeBtn = document.createElement('button');
-    closeBtn.style.cssText =
-      'background: none; border: none; color: var(--text-muted); cursor: pointer; display: inline-flex; align-items: center; padding: 0.25rem;';
+    closeBtn.className = 'arcade-modal-close';
+    closeBtn.setAttribute('aria-label', t('common.close') || 'Close');
     closeBtn.appendChild(icon('close', { width: '18', height: '18' }));
     closeBtn.addEventListener('click', () => this.closeCommentPanel());
     header.appendChild(headerTitle);
@@ -1070,15 +849,15 @@ export class ArcadePage {
       onCancel: () => {},
       currentUser: this.props.currentUser,
     });
-    composer.getElement().style.cssText = 'flex-shrink: 0;';
+    composer.getElement().classList.add('arcade-modal-composer');
     dialog.appendChild(composer.getElement());
 
     // Replies list
     const list = document.createElement('div');
     this.commentListEl = list;
-    list.style.cssText = 'flex: 1; overflow-y: auto; padding: 0.5rem 0;';
+    list.className = 'arcade-modal-list';
     const loading = document.createElement('div');
-    loading.style.cssText = 'text-align: center; padding: 2rem; color: var(--text-muted); font-size: 0.85rem;';
+    loading.className = 'arcade-modal-loading';
     loading.textContent = t('common.loading');
     list.appendChild(loading);
     dialog.appendChild(list);
@@ -1139,22 +918,15 @@ export class ArcadePage {
 
       // Replies header (matching ThreadPage spec)
       const repliesHeader = document.createElement('div');
-      repliesHeader.className = 'replies-header';
+      repliesHeader.className = 'replies-header arcade-replies-header';
       repliesHeader.textContent = `${t('thread.replies_header', { count: formatCount(data.replies.length) })}`;
-      repliesHeader.style.cssText = `
-        color: var(--text-muted);
-        font-family: 'Noto Sans', monospace, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        font-size: 0.9rem;
-        margin: 0 1rem 0.5rem 1rem;
-        font-weight: normal;
-      `;
       list.appendChild(repliesHeader);
 
       const replyStyle = getReplyStyle();
 
       if (data.replies.length === 0) {
         const empty = document.createElement('div');
-        empty.style.cssText = 'text-align: center; padding: 2rem; color: var(--text-muted); font-size: 0.85rem;';
+        empty.className = 'arcade-modal-loading';
         empty.textContent = 'No comments yet';
         list.appendChild(empty);
       } else {
@@ -1234,7 +1006,7 @@ export class ArcadePage {
     } catch {
       list.innerHTML = '';
       const err = document.createElement('div');
-      err.style.cssText = 'text-align: center; padding: 2rem; color: var(--danger); font-size: 0.85rem;';
+      err.className = 'arcade-modal-error';
       err.textContent = t('common.error');
       list.appendChild(err);
     }
@@ -1447,31 +1219,12 @@ export class ArcadePage {
   private showReportModal(game: Game): void {
     const overlay = document.createElement('div');
     const unregister = registerModal();
-    overlay.className = 'report-modal-overlay';
-    overlay.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0,0,0,0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-    `;
+    overlay.className = 'report-modal-overlay arcade-modal-overlay';
 
     const dialog = document.createElement('div');
-    dialog.style.cssText = `
-      background: var(--bg-primary);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 24px;
-      max-width: 420px;
-      width: 90%;
-      max-height: 80vh;
-      overflow-y: auto;
-    `;
+    dialog.className = 'arcade-report-dialog';
+    dialog.setAttribute('role', 'dialog');
+    dialog.setAttribute('aria-modal', 'true');
 
     const categories = [
       { value: 'spam', label: t('post.report_category_spam') },
@@ -1488,81 +1241,40 @@ export class ArcadePage {
     ];
 
     dialog.innerHTML = `
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-        <h3 style="margin: 0; font-size: 18px; color: var(--text-primary);">${t('arcade.report_title')}</h3>
-        <button class="close-btn" style="
-          background: none;
-          border: none;
-          color: var(--text-muted);
-          cursor: pointer;
-          display: inline-flex;
-          align-items: center;
-        "><span data-icon="close" style="display: inline-flex;"></span></button>
+      <div class="arcade-report-head">
+        <h3 class="arcade-report-title">${t('arcade.report_title')}</h3>
+        <button class="close-btn arcade-report-close"><span data-icon="close" class="arcade-report-close-icon"></span></button>
       </div>
-      <p style="margin: 0 0 16px 0; color: var(--text-muted); font-size: 14px;">${t('post.report_question')}</p>
-      <div class="categories" style="margin-bottom: 24px;">
+      <p class="arcade-report-question">${t('post.report_question')}</p>
+      <div class="categories arcade-report-categories">
         ${categories
           .map(
             (c) => `
-          <label style="
-            display: flex;
-            align-items: center;
-            padding: 10px 0;
-            cursor: pointer;
-            color: var(--text-primary);
-          ">
-            <input type="radio" name="report-category" value="${c.value}" style="margin-right: 12px;">
+          <label class="arcade-report-category">
+            <input type="radio" name="report-category" value="${c.value}" class="arcade-report-radio">
             <span>${c.label}</span>
           </label>
         `,
           )
           .join('')}
       </div>
-      <div class="dmca-section" style="display: none; margin-bottom: 24px; padding: 16px; background: var(--bg-secondary); border-radius: 8px;">
-        <h4 style="margin: 0 0 12px 0; font-size: 14px; color: var(--text-primary);">${t('post.report_dmca_title')}</h4>
-        <div style="margin-bottom: 12px;">
-          <label style="display: block; margin-bottom: 4px; font-size: 12px; color: var(--text-muted);">${t('post.report_dmca_work_label')}</label>
-          <input type="text" class="dmca-work" style="
-            width: 100%;
-            padding: 8px;
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            font-size: 14px;
-            box-sizing: border-box;
-          " placeholder="${t('post.report_dmca_work_placeholder')}">
+      <div class="dmca-section arcade-report-dmca" style="display: none;">
+        <h4 class="arcade-report-dmca-title">${t('post.report_dmca_title')}</h4>
+        <div class="arcade-report-field">
+          <label class="arcade-report-field-label">${t('post.report_dmca_work_label')}</label>
+          <input type="text" class="dmca-work arcade-report-input" placeholder="${t('post.report_dmca_work_placeholder')}">
         </div>
-        <div style="margin-bottom: 12px;">
-          <label style="display: block; margin-bottom: 4px; font-size: 12px; color: var(--text-muted);">${t('post.report_dmca_email_label')}</label>
-          <input type="email" class="dmca-email" style="
-            width: 100%;
-            padding: 8px;
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            font-size: 14px;
-            box-sizing: border-box;
-          " placeholder="${t('post.report_dmca_email_placeholder')}">
+        <div class="arcade-report-field">
+          <label class="arcade-report-field-label">${t('post.report_dmca_email_label')}</label>
+          <input type="email" class="dmca-email arcade-report-input" placeholder="${t('post.report_dmca_email_placeholder')}">
         </div>
-        <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer;">
-          <input type="checkbox" class="dmca-sworn" style="margin-top: 2px;">
-          <span style="font-size: 12px; color: var(--text-muted);">${t('post.report_dmca_swear')}</span>
+        <label class="arcade-report-swear">
+          <input type="checkbox" class="dmca-sworn">
+          <span>${t('post.report_dmca_swear')}</span>
         </label>
       </div>
-      <div style="display: flex; justify-content: flex-end;">
-        <button class="submit-btn" disabled style="
-          padding: 10px 24px;
-          background: var(--accent);
-          border: none;
-          border-radius: 9999px;
-          color: #000;
-          font-family: 'Noto Sans', monospace, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          font-size: 14px;
-          cursor: pointer;
-          opacity: 0.5;
-        ">${t('common.submit')}</button>
+      <div class="arcade-report-actions">
+        <button class="submit-btn arcade-report-submit" disabled>${t('common.submit')}</button>
       </div>
     `;
 
@@ -1707,45 +1419,18 @@ export class ArcadePage {
     labelStyle?: string,
   ): HTMLElement {
     const btn = document.createElement('button');
-    btn.className = 'arcade-action-btn';
-    const bg = isActive ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.15)';
-    btn.style.cssText = `
-      width: 52px;
-      height: 52px;
-      border-radius: 50%;
-      border: 1px solid ${isActive ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.08)'};
-      background: ${bg};
-      color: ${isActive ? 'var(--accent)' : 'rgba(255, 255, 255, 0.8)'};
-      font-size: 1.25rem;
-      cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 0;
-      transition: all 0.2s ease;
-      box-shadow: none;
-      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
-    `;
+    btn.className = `arcade-action-btn${isActive ? ' is-active' : ''}`;
+    btn.setAttribute('aria-label', label);
+    btn.setAttribute('aria-pressed', String(isActive));
 
     const iconSpan = document.createElement('span');
-    iconSpan.style.cssText = `
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      line-height: 1;
-    `;
+    iconSpan.className = 'arcade-action-icon';
     iconSpan.appendChild(icon(iconName, { width: '22', height: '22' }));
 
     const labelSpan = document.createElement('span');
     labelSpan.textContent = label;
-    labelSpan.style.cssText = `
-      font-size: 0.6rem;
-      font-weight: 600;
-      color: inherit;
-      margin-top: -1px;
-      ${labelStyle || ''}
-    `;
+    labelSpan.className = 'arcade-action-label';
+    if (labelStyle) labelSpan.style.cssText = labelStyle;
 
     btn.appendChild(iconSpan);
     // Only show numeric labels or specific text labels if requested
@@ -1753,14 +1438,6 @@ export class ArcadePage {
       btn.appendChild(labelSpan);
     }
 
-    btn.addEventListener('mouseenter', () => {
-      btn.style.background = 'rgba(255, 255, 255, 0.2)';
-      btn.style.borderColor = 'rgba(255, 255, 255, 0.4)';
-    });
-    btn.addEventListener('mouseleave', () => {
-      btn.style.background = bg;
-      btn.style.borderColor = isActive ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.08)';
-    });
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       onClick();
@@ -1783,35 +1460,12 @@ export class ArcadePage {
 
     const el = document.createElement('div');
     el.className = 'arcade-game-loading';
-    el.style.cssText = `
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 1rem;
-      z-index: 20;
-      pointer-events: none;
-    `;
 
     const spinner = document.createElement('div');
-    spinner.style.cssText = `
-      width: 40px;
-      height: 40px;
-      border: 3px solid rgba(255,255,255,0.15);
-      border-top-color: #fff;
-      border-radius: 50%;
-      animation: arcade-spin 0.8s linear infinite;
-    `;
+    spinner.className = 'arcade-game-spinner';
 
     const text = document.createElement('div');
-    text.style.cssText = `
-      color: rgba(255,255,255,0.7);
-      font-size: 0.9rem;
-      font-weight: 500;
-    `;
+    text.className = 'arcade-game-loading-label';
     text.textContent = this.getLoadingText(type);
 
     el.appendChild(spinner);
@@ -1838,11 +1492,7 @@ export class ArcadePage {
         // HTML5 games would use iframe
         const iframe = document.createElement('iframe');
         iframe.src = `/api/games/html5/${game.id}`;
-        iframe.style.cssText = `
-          width: 100%;
-          height: 100%;
-          border: none;
-        `;
+        iframe.className = 'arcade-game-frame';
         container.appendChild(iframe);
         this.currentGameHandle = {
           destroy: () => {
@@ -1857,10 +1507,10 @@ export class ArcadePage {
       this.hideLoading();
       container.replaceChildren();
       const wrapper = document.createElement('div');
-      wrapper.style.cssText = 'color: white; text-align: center; padding: 2rem;';
+      wrapper.className = 'arcade-error-wrap';
 
       const warnIconWrap = document.createElement('div');
-      warnIconWrap.style.cssText = 'margin-bottom: 1rem; color: var(--text-muted);';
+      warnIconWrap.className = 'arcade-error-icon';
       warnIconWrap.appendChild(icon('warning', { width: '48', height: '48' }));
 
       const message = document.createElement('div');
@@ -2352,12 +2002,7 @@ export class ArcadePage {
     };
 
     const overlay = document.createElement('div');
-    overlay.style.cssText = `
-      position: fixed;
-      inset: 0;
-      z-index: 2000;
-      pointer-events: none;
-    `;
+    overlay.className = 'arcade-tutorial-overlay';
     this.tutorialEl = overlay;
     document.body.appendChild(overlay);
 
@@ -2386,37 +2031,11 @@ export class ArcadePage {
 
     const buildCard = (title: string, desc: string, contentFn?: (c: HTMLElement) => void): HTMLElement => {
       const c = document.createElement('div');
-      c.style.cssText = `
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: var(--bg-primary, #fff);
-        border-radius: 16px;
-        max-width: 420px;
-        width: calc(100% - 3rem);
-        padding: 2rem 1.5rem;
-        box-shadow: 0 8px 40px rgba(0, 0, 0, 0.3);
-        text-align: center;
-        z-index: 2001;
-        pointer-events: auto;
-      `;
+      c.className = 'arcade-tutorial-card';
 
       const closeBtn = document.createElement('button');
-      closeBtn.style.cssText = `
-        position: absolute;
-        top: 0.75rem;
-        right: 0.75rem;
-        background: none;
-        border: none;
-        cursor: pointer;
-        color: var(--text-muted, #888);
-        padding: 0.25rem;
-        line-height: 1;
-        border-radius: 4px;
-        display: inline-flex;
-        align-items: center;
-      `;
+      closeBtn.className = 'arcade-tutorial-close';
+      closeBtn.setAttribute('aria-label', t('common.close') || 'Close');
       closeBtn.appendChild(icon('close', { width: '18', height: '18' }));
       closeBtn.addEventListener('click', closeTutorial);
       c.appendChild(closeBtn);
@@ -2425,22 +2044,11 @@ export class ArcadePage {
 
       const titleEl = document.createElement('h2');
       titleEl.textContent = title;
-      titleEl.style.cssText = `
-        font-size: 1.2rem;
-        font-weight: 700;
-        margin: 0 0 0.75rem 0;
-        color: var(--text-primary);
-        line-height: 1.4;
-      `;
+      titleEl.className = 'arcade-tutorial-title';
 
       const descEl = document.createElement('p');
       descEl.textContent = desc;
-      descEl.style.cssText = `
-        font-size: 0.95rem;
-        color: var(--text-secondary, #555);
-        margin: 0 0 1.25rem 0;
-        line-height: 1.6;
-      `;
+      descEl.className = 'arcade-tutorial-desc';
 
       c.appendChild(titleEl);
       c.appendChild(descEl);
@@ -2617,42 +2225,22 @@ export class ArcadePage {
       if (step.type === 'card') {
         cardEl = buildCard(step.title, step.desc);
         const btnRow = document.createElement('div');
-        btnRow.style.cssText = `
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 0.75rem;
-          flex-wrap: wrap;
-        `;
+        btnRow.className = 'arcade-tutorial-btn-row';
 
         if (isWelcome) {
-          const startBtn = ArcadePage.createTutorialButton(
-            t('arcade.tutorial_start'),
-            'var(--accent, #22c55e)',
-            '#fff',
-          );
+          const startBtn = ArcadePage.createTutorialButton(t('arcade.tutorial_start'));
           startBtn.addEventListener('click', () => {
             currentStep = 1;
             renderStep();
           });
           btnRow.appendChild(startBtn);
 
-          const skipBtn = ArcadePage.createTutorialButton(
-            t('arcade.tutorial_skip'),
-            'transparent',
-            'var(--text-muted, #888)',
-          );
-          skipBtn.style.border = '1px solid var(--border, #ddd)';
+          const skipBtn = ArcadePage.createTutorialButton(t('arcade.tutorial_skip'), 'ghost');
           skipBtn.addEventListener('click', closeTutorial);
           btnRow.appendChild(skipBtn);
         } else {
           if (currentStep > 1) {
-            const prevBtn = ArcadePage.createTutorialButton(
-              t('arcade.tutorial_prev'),
-              'transparent',
-              'var(--text-primary)',
-            );
-            prevBtn.style.border = '1px solid var(--border, #ddd)';
+            const prevBtn = ArcadePage.createTutorialButton(t('arcade.tutorial_prev'), 'ghost');
             prevBtn.addEventListener('click', () => {
               currentStep--;
               renderStep();
@@ -2660,19 +2248,11 @@ export class ArcadePage {
             btnRow.appendChild(prevBtn);
           }
           if (isLast) {
-            const doneBtn = ArcadePage.createTutorialButton(
-              t('arcade.tutorial_done'),
-              'var(--accent, #22c55e)',
-              '#fff',
-            );
+            const doneBtn = ArcadePage.createTutorialButton(t('arcade.tutorial_done'));
             doneBtn.addEventListener('click', closeTutorial);
             btnRow.appendChild(doneBtn);
           } else {
-            const nextBtn = ArcadePage.createTutorialButton(
-              t('arcade.tutorial_next'),
-              'var(--accent, #22c55e)',
-              '#fff',
-            );
+            const nextBtn = ArcadePage.createTutorialButton(t('arcade.tutorial_next'));
             nextBtn.addEventListener('click', () => {
               currentStep++;
               renderStep();
@@ -2689,42 +2269,22 @@ export class ArcadePage {
           canvas.width = 320;
           canvas.height = 200;
           _demoCanvas = canvas;
-          canvas.style.cssText = `
-            display: block;
-            margin: 0 auto 1rem auto;
-            border-radius: 10px;
-            width: 100%;
-            max-width: 320px;
-            aspect-ratio: 320 / 200;
-            cursor: pointer;
-            touch-action: manipulation;
-          `;
+          canvas.className = 'arcade-tutorial-demo-canvas';
           c.insertBefore(canvas, c.firstChild?.nextSibling || c.firstChild);
           startDemoGame(canvas);
         });
 
         const btnRow = document.createElement('div');
-        btnRow.style.cssText = `
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 0.75rem;
-          flex-wrap: wrap;
-        `;
+        btnRow.className = 'arcade-tutorial-btn-row';
         if (currentStep > 1) {
-          const prevBtn = ArcadePage.createTutorialButton(
-            t('arcade.tutorial_prev'),
-            'transparent',
-            'var(--text-primary)',
-          );
-          prevBtn.style.border = '1px solid var(--border, #ddd)';
+          const prevBtn = ArcadePage.createTutorialButton(t('arcade.tutorial_prev'), 'ghost');
           prevBtn.addEventListener('click', () => {
             currentStep--;
             renderStep();
           });
           btnRow.appendChild(prevBtn);
         }
-        const nextBtn = ArcadePage.createTutorialButton(t('arcade.tutorial_next'), 'var(--accent, #22c55e)', '#fff');
+        const nextBtn = ArcadePage.createTutorialButton(t('arcade.tutorial_next'));
         nextBtn.addEventListener('click', () => {
           currentStep++;
           renderStep();
@@ -2740,20 +2300,9 @@ export class ArcadePage {
         if (!target) {
           cardEl = buildCard(step.title, step.desc);
           const btnRow = document.createElement('div');
-          btnRow.style.cssText = `
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.75rem;
-            flex-wrap: wrap;
-          `;
+          btnRow.className = 'arcade-tutorial-btn-row';
           if (currentStep > 1) {
-            const prevBtn = ArcadePage.createTutorialButton(
-              t('arcade.tutorial_prev'),
-              'transparent',
-              'var(--text-primary)',
-            );
-            prevBtn.style.border = '1px solid var(--border, #ddd)';
+            const prevBtn = ArcadePage.createTutorialButton(t('arcade.tutorial_prev'), 'ghost');
             prevBtn.addEventListener('click', () => {
               currentStep--;
               renderStep();
@@ -2761,19 +2310,11 @@ export class ArcadePage {
             btnRow.appendChild(prevBtn);
           }
           if (isLast) {
-            const doneBtn = ArcadePage.createTutorialButton(
-              t('arcade.tutorial_done'),
-              'var(--accent, #22c55e)',
-              '#fff',
-            );
+            const doneBtn = ArcadePage.createTutorialButton(t('arcade.tutorial_done'));
             doneBtn.addEventListener('click', closeTutorial);
             btnRow.appendChild(doneBtn);
           } else {
-            const nextBtn = ArcadePage.createTutorialButton(
-              t('arcade.tutorial_next'),
-              'var(--accent, #22c55e)',
-              '#fff',
-            );
+            const nextBtn = ArcadePage.createTutorialButton(t('arcade.tutorial_next'));
             nextBtn.addEventListener('click', () => {
               currentStep++;
               renderStep();
@@ -2788,61 +2329,36 @@ export class ArcadePage {
         const rect = target.getBoundingClientRect();
 
         spotlightEl = document.createElement('div');
-        spotlightEl.style.cssText = `
-          position: fixed;
-          top: ${rect.top}px;
-          left: ${rect.left}px;
-          width: ${rect.width}px;
-          height: ${rect.height}px;
-          z-index: 2000;
-          pointer-events: none;
-          box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.65), 0 0 20px rgba(34, 197, 94, 0.3);
-          border-radius: 12px;
-          animation: spotlight-pulse 2s ease-in-out infinite;
-        `;
+        spotlightEl.className = 'arcade-tutorial-spotlight';
+        spotlightEl.style.top = `${rect.top}px`;
+        spotlightEl.style.left = `${rect.left}px`;
+        spotlightEl.style.width = `${rect.width}px`;
+        spotlightEl.style.height = `${rect.height}px`;
         overlay.appendChild(spotlightEl);
 
         tooltipEl = document.createElement('div');
-        tooltipEl.style.cssText = `
-          position: fixed;
-          z-index: 2001;
-          pointer-events: auto;
-          background: var(--bg-primary, #fff);
-          border-radius: 12px;
-          padding: 1rem 1.25rem;
-          max-width: 280px;
-          box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
-          text-align: center;
-        `;
+        tooltipEl.className = 'arcade-tutorial-tooltip';
 
         const icon = step.title.match(/^(\S+)/)?.[0] || '';
         const cleanTitle = step.title.replace(/^\S+\s*/, '');
 
         const stepLabel = document.createElement('div');
         stepLabel.textContent = `${currentStep}/${steps.length - 1}`;
-        stepLabel.style.cssText = 'font-size: 0.7rem; color: var(--text-muted, #888); margin-bottom: 0.5rem;';
+        stepLabel.className = 'arcade-tutorial-step-label';
 
         const titleEl = document.createElement('div');
-        titleEl.style.cssText = 'font-weight: 700; font-size: 1rem; margin-bottom: 0.4rem; color: var(--text-primary);';
+        titleEl.className = 'arcade-tutorial-tooltip-title';
         titleEl.textContent = `${icon} ${cleanTitle}`;
 
         const descEl = document.createElement('div');
         descEl.textContent = step.desc;
-        descEl.style.cssText =
-          'font-size: 0.85rem; color: var(--text-secondary, #555); margin-bottom: 0.75rem; line-height: 1.5;';
+        descEl.className = 'arcade-tutorial-tooltip-desc';
 
         const btnRow = document.createElement('div');
-        btnRow.style.cssText = 'display: flex; align-items: center; justify-content: center; gap: 0.5rem;';
+        btnRow.className = 'arcade-tutorial-btn-row arcade-tutorial-btn-row--compact';
 
         if (currentStep > 1) {
-          const prevBtn = ArcadePage.createTutorialButton(
-            t('arcade.tutorial_prev'),
-            'transparent',
-            'var(--text-primary)',
-          );
-          prevBtn.style.border = '1px solid var(--border, #ddd)';
-          prevBtn.style.padding = '0.4rem 0.8rem';
-          prevBtn.style.fontSize = '0.8rem';
+          const prevBtn = ArcadePage.createTutorialButton(t('arcade.tutorial_prev'), 'ghost', 'sm');
           prevBtn.addEventListener('click', () => {
             currentStep--;
             renderStep();
@@ -2851,15 +2367,11 @@ export class ArcadePage {
         }
 
         if (isLast) {
-          const doneBtn = ArcadePage.createTutorialButton(t('arcade.tutorial_done'), 'var(--accent, #22c55e)', '#fff');
-          doneBtn.style.padding = '0.4rem 0.8rem';
-          doneBtn.style.fontSize = '0.8rem';
+          const doneBtn = ArcadePage.createTutorialButton(t('arcade.tutorial_done'), 'primary', 'sm');
           doneBtn.addEventListener('click', closeTutorial);
           btnRow.appendChild(doneBtn);
         } else {
-          const nextBtn = ArcadePage.createTutorialButton(t('arcade.tutorial_next'), 'var(--accent, #22c55e)', '#fff');
-          nextBtn.style.padding = '0.4rem 0.8rem';
-          nextBtn.style.fontSize = '0.8rem';
+          const nextBtn = ArcadePage.createTutorialButton(t('arcade.tutorial_next'), 'primary', 'sm');
           nextBtn.addEventListener('click', () => {
             currentStep++;
             renderStep();
@@ -2912,27 +2424,14 @@ export class ArcadePage {
     renderStep();
   }
 
-  private static createTutorialButton(text: string, bg: string, color: string): HTMLButtonElement {
+  private static createTutorialButton(
+    text: string,
+    variant: 'primary' | 'ghost' = 'primary',
+    size: 'md' | 'sm' = 'md',
+  ): HTMLButtonElement {
     const btn = document.createElement('button');
     btn.textContent = text;
-    btn.style.cssText = `
-      background: ${bg};
-      border: none;
-      color: ${color};
-      cursor: pointer;
-      padding: 0.6rem 1.4rem;
-      font-size: 0.9rem;
-      font-weight: 600;
-      border-radius: 8px;
-      transition: opacity 0.2s;
-      line-height: 1.2;
-    `;
-    btn.addEventListener('mouseenter', () => {
-      btn.style.opacity = '0.85';
-    });
-    btn.addEventListener('mouseleave', () => {
-      btn.style.opacity = '1';
-    });
+    btn.className = `arcade-tutorial-btn arcade-tutorial-btn--${variant} arcade-tutorial-btn--${size}`;
     return btn;
   }
 

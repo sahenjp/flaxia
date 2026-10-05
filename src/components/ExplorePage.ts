@@ -2,6 +2,7 @@ import { attachPlusBadge } from '../lib/avatar.js';
 import { createFabButton } from '../lib/fab-button.js';
 import { formatCount } from '../lib/format.js';
 import { t } from '../lib/i18n.js';
+import { icon } from '../lib/icons.js';
 import { createInfiniteScroll } from '../lib/infinite-scroll.js';
 import { createSkeletonCards } from '../lib/loading-ui.js';
 import { createPageHeader } from '../lib/page-header.js';
@@ -9,7 +10,9 @@ import { openPostModal } from '../lib/post-modal.js';
 import { createPostUpdatedHandler } from '../lib/post-update.js';
 import { updateMetaTags } from '../lib/seo-meta.js';
 import { Post } from '../types/post.js';
+import { openCommandPalette } from './CommandPalette.js';
 import { createPostCard } from './PostCard.js';
+import { createTagConstellation } from './TagConstellation.js';
 
 export interface ExplorePageProps {
   tag?: string;
@@ -52,15 +55,12 @@ export class ExplorePage {
   private hasMore = true;
   private infiniteScroll: ReturnType<typeof createInfiniteScroll>;
   private activeFilter: 'posts' | 'arcade' | 'users' = 'posts';
-  private searchFilter: 'posts' | 'users' | 'arcade' = 'posts';
   private fabButton: HTMLElement | null = null;
   private tagCountEl: HTMLElement | null = null;
   private totalTagCount: number = 0;
-  private suggestAbortController: AbortController | null = null;
-  private static readonly SEARCH_HISTORY_KEY = 'flaxia_search_history';
-  private static readonly MAX_HISTORY = 10;
   private postCards: Map<string, ReturnType<typeof createPostCard>> = new Map();
   private postUpdatedHandler?: (e: Event) => void;
+  private constellation?: { element: HTMLElement; destroy: () => void };
 
   constructor(props: ExplorePageProps) {
     this.props = props;
@@ -95,7 +95,7 @@ export class ExplorePage {
     if (this.props.tag) {
       container.appendChild(
         createPageHeader({
-          title: `# ${this.props.tag}`,
+          title: `#${this.props.tag}`,
           subtitle: t('explore.tag_count', { count: formatCount(0) }),
           subtitleRef: (el) => {
             this.tagCountEl = el;
@@ -147,64 +147,38 @@ export class ExplorePage {
   private createSearchSection(): HTMLElement {
     const section = document.createElement('div');
     section.className = 'explore-search-section';
-    section.style.cssText = `
-      padding: 1rem;
-      border-bottom: 1px solid var(--border);
-      position: sticky;
-      top: 0;
-      z-index: 10;
-      background: var(--bg-primary);
-    `;
 
     const searchBox = document.createElement('div');
-    searchBox.className = 'search-box';
-    searchBox.style.cssText = 'position: relative; margin-bottom: 1rem;';
+    searchBox.className = 'explore-search-box';
 
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.className = 'search-input';
-    input.placeholder = t('explore.search_placeholder');
-    input.style.cssText =
-      'width: 100%; padding: 0.75rem 1rem 0.75rem 2.5rem; background: var(--bg-input); border: 1px solid var(--border); border-radius: 9999px; color: var(--text-primary); font-family: inherit; font-size: 0.875rem; outline: none; transition: border-color 0.2s ease; box-sizing: border-box;';
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'palette-trigger';
+    trigger.setAttribute('aria-label', t('explore.open_search'));
 
-    const icon = document.createElement('span');
-    icon.className = 'search-icon';
-    icon.style.cssText =
-      'position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.875rem; pointer-events: none;';
-    icon.textContent = '🔍';
+    const iconWrap = document.createElement('span');
+    iconWrap.className = 'search-icon';
+    iconWrap.appendChild(icon('search'));
 
-    searchBox.appendChild(input);
-    searchBox.appendChild(icon);
+    const label = document.createElement('span');
+    label.className = 'palette-trigger-label';
+    label.textContent = t('explore.open_search');
 
-    const suggestDropdown = document.createElement('div');
-    suggestDropdown.className = 'tag-suggest-dropdown';
-    suggestDropdown.style.cssText = `
-      display: none;
-      position: absolute;
-      top: 100%;
-      left: 0;
-      right: 0;
-      background: var(--bg-primary);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      z-index: 100;
-      max-height: 300px;
-      overflow-y: auto;
-      margin-top: 4px;
-    `;
-    searchBox.appendChild(suggestDropdown);
+    const kbd = document.createElement('kbd');
+    kbd.className = 'cmd-kbd palette-trigger-kbd';
+    kbd.textContent = '\u2318K';
+
+    trigger.appendChild(iconWrap);
+    trigger.appendChild(label);
+    trigger.appendChild(kbd);
+    trigger.addEventListener('click', () => openCommandPalette());
+    searchBox.appendChild(trigger);
 
     section.appendChild(searchBox);
 
     // Filter bar
     const filterBar = document.createElement('div');
     filterBar.className = 'explore-filter-bar';
-    filterBar.style.cssText = `
-      display: flex;
-      gap: 0.5rem;
-      overflow-x: auto;
-    `;
 
     const filters: { key: 'posts' | 'arcade' | 'users'; label: string }[] = [
       { key: 'posts', label: t('explore.filter_posts') },
@@ -214,22 +188,9 @@ export class ExplorePage {
 
     for (const f of filters) {
       const btn = document.createElement('button');
-      btn.className = 'explore-filter-btn';
+      btn.className = `explore-filter-btn${f.key === 'posts' ? ' is-active' : ''}`;
       btn.dataset.filter = f.key;
       btn.textContent = f.label;
-      const isActive = f.key === 'posts';
-      btn.style.cssText = `
-        padding: 0.4rem 1rem;
-        border-radius: 999px;
-        border: 1px solid ${isActive ? 'var(--accent)' : 'var(--border)'};
-        background: ${isActive ? 'var(--accent)' : 'transparent'};
-        color: ${isActive ? 'white' : 'var(--text-muted)'};
-        cursor: pointer;
-        font-family: inherit;
-        font-size: 0.8rem;
-        white-space: nowrap;
-        transition: all 0.2s ease;
-      `;
       btn.onclick = () => this.switchFilter(f.key);
       filterBar.appendChild(btn);
     }
@@ -240,223 +201,7 @@ export class ExplorePage {
   }
 
   private setupEventListeners(): void {
-    const searchInput = this.element.querySelector('.search-input') as HTMLInputElement;
-    const suggestDropdown = this.element.querySelector('.tag-suggest-dropdown') as HTMLElement;
-
-    if (searchInput && suggestDropdown) {
-      const fetchSuggestions = async (prefix: string, type: 'tag' | 'user') => {
-        if (this.suggestAbortController) this.suggestAbortController.abort();
-        const controller = new AbortController();
-        this.suggestAbortController = controller;
-        try {
-          const url =
-            type === 'tag'
-              ? `/api/tags/suggest?q=${encodeURIComponent(prefix)}`
-              : `/api/users/suggest?q=${encodeURIComponent(prefix)}`;
-          const res = await fetch(url, { signal: controller.signal });
-          if (!res.ok) return;
-          if (type === 'tag') {
-            const data = (await res.json()) as { tags: { tag: string; count: number }[] };
-            this.renderSuggestions(
-              suggestDropdown,
-              (data.tags || []).map((t) => ({ type: 'tag' as const, label: t.tag, count: t.count })),
-            );
-          } else {
-            const data = (await res.json()) as {
-              users: { username: string; display_name: string; avatar_key: string; badge_type?: string | null }[];
-            };
-            this.renderSuggestions(
-              suggestDropdown,
-              (data.users || []).map((u) => ({
-                type: 'user' as const,
-                label: u.username,
-                display: u.display_name,
-                avatar: u.avatar_key,
-                badge: u.badge_type ?? null,
-              })),
-            );
-          }
-        } catch (err: unknown) {
-          if ((err as { name?: string })?.name !== 'AbortError') console.error('Suggest error:', err);
-        }
-      };
-
-      searchInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-          const query = searchInput.value.trim();
-          this.suggestAbortController?.abort();
-          suggestDropdown.style.display = 'none';
-
-          if (query.startsWith('#')) {
-            const afterHash = query.slice(1).trim();
-            const spaceIdx = afterHash.indexOf(' ');
-            if (spaceIdx === -1 && afterHash) {
-              window.history.pushState({}, '', `/explore?tag=${encodeURIComponent(afterHash)}`);
-              window.location.reload();
-              return;
-            }
-          }
-
-          if (query.startsWith('@')) {
-            this.performSearch(query);
-            return;
-          }
-
-          this.performSearch(query);
-        }
-      });
-
-      let suggestTimer: ReturnType<typeof setTimeout> | null = null;
-
-      searchInput.addEventListener('input', () => {
-        const val = searchInput.value;
-
-        if (this.suggestAbortController) this.suggestAbortController.abort();
-        if (suggestTimer) clearTimeout(suggestTimer);
-
-        if (val.startsWith('#')) {
-          const prefix = val.slice(1);
-          if (!prefix) {
-            suggestDropdown.style.display = 'none';
-            return;
-          }
-          suggestTimer = setTimeout(() => fetchSuggestions(prefix, 'tag'), 200);
-          return;
-        }
-
-        if (val.startsWith('@')) {
-          const prefix = val.slice(1);
-          if (!prefix) {
-            suggestDropdown.style.display = 'none';
-            return;
-          }
-          suggestTimer = setTimeout(() => fetchSuggestions(prefix, 'user'), 200);
-          return;
-        }
-
-        if (val.length === 0) {
-          this.renderSearchHistory(suggestDropdown);
-          return;
-        }
-
-        suggestDropdown.style.display = 'none';
-      });
-
-      searchInput.addEventListener('focus', () => {
-        if (!searchInput.value) {
-          this.renderSearchHistory(suggestDropdown);
-        }
-      });
-
-      searchInput.addEventListener('blur', () => {
-        setTimeout(() => {
-          suggestDropdown.style.display = 'none';
-        }, 200);
-      });
-
-      searchInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-          suggestDropdown.style.display = 'none';
-          searchInput.blur();
-        }
-      });
-    }
-  }
-
-  private renderSuggestions(
-    dropdown: HTMLElement,
-    items: {
-      type: 'tag' | 'user';
-      label: string;
-      count?: number;
-      display?: string;
-      avatar?: string;
-      badge?: string | null;
-    }[],
-  ): void {
-    dropdown.innerHTML = '';
-
-    if (items.length === 0) {
-      dropdown.style.display = 'none';
-      return;
-    }
-
-    dropdown.style.display = 'block';
-
-    for (const it of items) {
-      const item = document.createElement('div');
-      item.style.cssText = `
-        padding: 0.6rem 0.75rem;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        transition: background 0.15s;
-      `;
-      item.addEventListener('mouseenter', () => {
-        item.style.background = 'var(--bg-hover, rgba(0,0,0,0.04))';
-      });
-      item.addEventListener('mouseleave', () => {
-        item.style.background = 'none';
-      });
-
-      if (it.type === 'tag') {
-        const tagName = document.createElement('span');
-        tagName.textContent = `# ${it.label}`;
-        tagName.style.cssText = 'font-weight: 600; color: var(--accent); font-size: 0.875rem;';
-
-        const count = document.createElement('span');
-        count.textContent = formatCount(it.count || 0);
-        count.style.cssText = 'margin-left: auto; color: var(--text-muted); font-size: 0.75rem;';
-
-        item.appendChild(tagName);
-        item.appendChild(count);
-
-        item.addEventListener('click', () => {
-          dropdown.style.display = 'none';
-          window.history.pushState({}, '', `/explore?tag=${encodeURIComponent(it.label)}`);
-          window.location.reload();
-        });
-      } else {
-        const avatar = document.createElement('div');
-        avatar.style.cssText = `
-          width: 28px; height: 28px; border-radius: 50%;
-          background: var(--accent); color: var(--bg-primary);
-          display: flex; align-items: center; justify-content: center;
-          font-weight: bold; font-size: 0.7rem; flex-shrink: 0;
-        `;
-        avatar.textContent = (it.display || it.label)[0].toUpperCase();
-        attachPlusBadge(avatar, it.badge);
-
-        const info = document.createElement('div');
-        info.style.cssText = 'display: flex; flex-direction: column;';
-
-        const name = document.createElement('span');
-        name.textContent = `@${it.label}`;
-        name.style.cssText = 'font-weight: 600; color: var(--text-primary); font-size: 0.85rem;';
-
-        const display = document.createElement('span');
-        display.textContent = it.display || '';
-        display.style.cssText = 'font-size: 0.75rem; color: var(--text-muted);';
-
-        info.appendChild(name);
-        info.appendChild(display);
-        item.appendChild(avatar);
-        item.appendChild(info);
-
-        item.addEventListener('click', () => {
-          dropdown.style.display = 'none';
-          window.history.pushState({}, '', `/profile/${encodeURIComponent(it.label)}`);
-          window.dispatchEvent(
-            new CustomEvent('spaNavigate', {
-              detail: { view: 'profile', username: it.label },
-            }),
-          );
-        });
-      }
-
-      dropdown.appendChild(item);
-    }
+    // Search moved to the global command palette (palette trigger above).
   }
 
   private async loadContent(): Promise<void> {
@@ -631,16 +376,6 @@ export class ExplorePage {
     this.updateTagCount();
   }
 
-  private performSearch(query: string): void {
-    this.saveSearchHistory(query);
-    window.history.pushState({}, '', `/search?q=${encodeURIComponent(query)}&type=${this.searchFilter}`);
-    window.dispatchEvent(
-      new CustomEvent('spaNavigate', {
-        detail: { view: 'search', searchQuery: query, searchType: this.searchFilter },
-      }),
-    );
-  }
-
   private switchFilter(filter: 'posts' | 'arcade' | 'users'): void {
     if (this.activeFilter === filter) return;
     this.activeFilter = filter;
@@ -648,10 +383,7 @@ export class ExplorePage {
     // Update filter UI
     const filterBtns = this.element.querySelectorAll('.explore-filter-btn') as NodeListOf<HTMLElement>;
     filterBtns.forEach((btn) => {
-      const isActive = btn.dataset.filter === filter;
-      btn.style.border = `1px solid ${isActive ? 'var(--accent)' : 'var(--border)'}`;
-      btn.style.background = isActive ? 'var(--accent)' : 'transparent';
-      btn.style.color = isActive ? 'white' : 'var(--text-muted)';
+      btn.classList.toggle('is-active', btn.dataset.filter === filter);
     });
 
     // Show/hide trending tags container
@@ -673,8 +405,7 @@ export class ExplorePage {
         loadingElement.style.display = 'block';
         loadingElement.innerHTML = '';
         const msg = document.createElement('div');
-        msg.style.cssText =
-          "text-align: center; padding: 3rem; color: var(--text-muted); font-family: 'Noto Sans', monospace, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;";
+        msg.className = 'search-empty';
         msg.textContent = t('explore.tag_filter_unavailable');
         loadingElement.appendChild(msg);
       }
@@ -689,73 +420,6 @@ export class ExplorePage {
     this.postCards.clear();
 
     void this.loadContent();
-  }
-
-  private getSearchHistory(): string[] {
-    try {
-      const raw = localStorage.getItem(ExplorePage.SEARCH_HISTORY_KEY);
-      return raw ? JSON.parse(raw) : [];
-    } catch {
-      return [];
-    }
-  }
-
-  private saveSearchHistory(query: string): void {
-    const history = this.getSearchHistory().filter((h) => h !== query);
-    history.unshift(query);
-    if (history.length > ExplorePage.MAX_HISTORY) history.pop();
-    localStorage.setItem(ExplorePage.SEARCH_HISTORY_KEY, JSON.stringify(history));
-  }
-
-  private renderSearchHistory(dropdown: HTMLElement): void {
-    const history = this.getSearchHistory();
-    if (history.length === 0) return;
-
-    dropdown.innerHTML = '';
-    dropdown.style.display = 'block';
-
-    const header = document.createElement('div');
-    header.style.cssText =
-      'padding: 0.5rem 0.75rem; font-size: 0.75rem; color: var(--text-muted); font-weight: 600; border-bottom: 1px solid var(--border);';
-    header.textContent = t('explore.recent_searches') || 'Recent';
-    dropdown.appendChild(header);
-
-    history.forEach((q) => {
-      const item = document.createElement('div');
-      item.style.cssText = `
-        padding: 0.6rem 0.75rem; cursor: pointer; display: flex;
-        align-items: center; gap: 0.5rem; transition: background 0.15s;
-      `;
-      item.addEventListener('mouseenter', () => {
-        item.style.background = 'var(--bg-hover, rgba(0,0,0,0.04))';
-      });
-      item.addEventListener('mouseleave', () => {
-        item.style.background = 'none';
-      });
-
-      const icon = document.createElement('span');
-      icon.textContent = '🕐';
-      icon.style.cssText = 'font-size: 0.85rem; flex-shrink: 0;';
-
-      const text = document.createElement('span');
-      text.textContent = q;
-      text.style.cssText =
-        'color: var(--text-primary); font-size: 0.85rem; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;';
-
-      item.appendChild(icon);
-      item.appendChild(text);
-
-      item.addEventListener('click', () => {
-        dropdown.style.display = 'none';
-        const input = this.element.querySelector('.search-input') as HTMLInputElement;
-        if (input) {
-          input.value = q;
-          this.performSearch(q);
-        }
-      });
-
-      dropdown.appendChild(item);
-    });
   }
 
   private setupPostUpdatedListener(): void {
@@ -790,32 +454,87 @@ export class ExplorePage {
     postsContainer.appendChild(fragment);
   }
 
-  private renderTrendingTags(tags: Array<{ tag: string; percentage: string }>): void {
+  private renderTrendingTags(tags: Array<{ tag: string; count?: number; percentage: string }>): void {
     const container = this.element.querySelector('.explore-trending-tags') as HTMLElement;
     if (!container) return;
 
-    container.innerHTML = `<h2 style="padding: 1rem; font-size: 1.25rem; border-bottom: 1px solid var(--border);">${t('explore.trending_tags')}</h2>`;
+    this.constellation?.destroy();
+    this.constellation = undefined;
+    container.innerHTML = '';
+    container.className = 'explore-trending-tags';
     container.style.display = 'block';
-    container.style.background = 'var(--bg-secondary)';
-    container.style.marginBottom = '1rem';
 
-    tags.forEach(({ tag, percentage }) => {
+    const openTag = (tag: string): void => {
+      window.history.pushState({}, '', `/explore?tag=${encodeURIComponent(tag)}`);
+      window.dispatchEvent(new CustomEvent('spaNavigate', { detail: { view: 'explore', tag } }));
+    };
+
+    const heading = document.createElement('h2');
+    heading.className = 'explore-trending-heading';
+    heading.textContent = t('explore.trending_tags');
+    container.appendChild(heading);
+
+    if (tags.length > 0) {
+      this.constellation = createTagConstellation(tags, openTag);
+      container.appendChild(this.constellation.element);
+      const hint = document.createElement('div');
+      hint.className = 'constellation-hint';
+      hint.textContent = t('explore.graph_hint');
+      const hintWrap = document.createElement('div');
+      hintWrap.className = 'constellation-wrap';
+      hintWrap.appendChild(hint);
+      container.appendChild(hintWrap);
+    }
+
+    const maxCount = Math.max(1, ...tags.map((entry) => (typeof entry.count === 'number' ? entry.count : 0)));
+
+    tags.forEach(({ tag, count, percentage }, index) => {
       const item = document.createElement('div');
       item.className = 'trending-item';
-      item.style.cssText = `
-        padding: 0.75rem 1rem;
-        cursor: pointer;
-        transition: background-color 0.2s ease;
-        border-bottom: 1px solid var(--border);
-      `;
-      item.innerHTML = `
-        <div style="color: var(--accent); font-weight: 600;"># ${tag}</div>
-        <div style="font-size: 0.8rem; color: var(--text-muted);">${t('explore.trending_percent', { percentage })}</div>
-      `;
-      item.onclick = () => {
-        window.history.pushState({}, '', `/explore?tag=${encodeURIComponent(tag)}`);
-        window.location.reload();
-      };
+      item.style.setProperty('--i', String(Math.min(index, 7)));
+      item.setAttribute('role', 'link');
+      item.setAttribute('tabindex', '0');
+
+      const rank = document.createElement('span');
+      rank.className = 'trending-rank';
+      rank.textContent = String(index + 1).padStart(2, '0');
+
+      const body = document.createElement('div');
+      body.className = 'trending-body';
+
+      const hashtag = document.createElement('div');
+      hashtag.className = 'trending-hashtag';
+      hashtag.textContent = `#${tag}`;
+
+      const meta = document.createElement('div');
+      meta.className = 'trending-meta';
+      const parts = [t('explore.trending_percent', { percentage })];
+      if (count === 1) {
+        parts.push(t('right_panel.trending_post_one'));
+      } else if (typeof count === 'number' && count > 0) {
+        parts.push(t('right_panel.trending_posts', { count }));
+      }
+      meta.textContent = parts.join(' · ');
+
+      const bar = document.createElement('div');
+      bar.className = 'trending-bar';
+      const fill = document.createElement('span');
+      fill.style.width = `${Math.max(6, Math.round(((count || 0) / maxCount) * 100))}%`;
+      bar.appendChild(fill);
+
+      body.appendChild(hashtag);
+      body.appendChild(meta);
+      body.appendChild(bar);
+      item.appendChild(rank);
+      item.appendChild(body);
+
+      item.addEventListener('click', () => openTag(tag));
+      item.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openTag(tag);
+        }
+      });
       container.appendChild(item);
     });
   }
@@ -839,65 +558,40 @@ export class ExplorePage {
 
     this.arcadePosts.slice(startIndex).forEach((game) => {
       const row = document.createElement('div');
-      row.style.cssText = `
-        display: flex;
-        gap: 1rem;
-        padding: 0.75rem;
-        border-radius: 0.5rem;
-        cursor: pointer;
-        transition: background 0.2s;
-        margin-bottom: 0.25rem;
-      `;
-      row.addEventListener('mouseenter', () => {
-        row.style.background = 'var(--bg-secondary)';
-      });
-      row.addEventListener('mouseleave', () => {
-        row.style.background = 'transparent';
-      });
+      row.className = 'explore-arcade-row';
       row.onclick = () => {
         window.history.pushState({ postId: game.postId }, '', `/arcade/${game.postId}`);
         window.dispatchEvent(new CustomEvent('spaNavigate', { detail: { view: 'arcade', postId: game.postId } }));
       };
 
       const thumb = document.createElement('div');
-      thumb.style.cssText = `
-        width: 180px;
-        flex-shrink: 0;
-        aspect-ratio: 16 / 9;
-        border-radius: 0.5rem;
-        overflow: hidden;
-        position: relative;
-        background: var(--bg-secondary);
-      `;
+      thumb.className = 'arcade-row-thumb arcade-row-thumb--secondary';
 
       if (game.thumbnailKey) {
         const img = document.createElement('img');
+        img.className = 'arcade-row-img';
         img.src = `/api/thumbnail/${game.postId}`;
         img.alt = '';
         img.loading = 'lazy';
         img.width = 180;
         img.height = 101;
-        img.style.cssText = 'width: 100%; height: 100%; object-fit: cover;';
         thumb.appendChild(img);
       } else {
-        const fallback = document.createElement('div');
-        fallback.style.cssText =
-          'width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 2rem;';
-        fallback.textContent = '🎮';
+        const fallback = document.createElement('span');
+        fallback.className = 'arcade-row-fallback';
+        fallback.appendChild(icon('arcade', { width: '24', height: '24' }));
         thumb.appendChild(fallback);
       }
 
       const info = document.createElement('div');
-      info.style.cssText = 'flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center;';
+      info.className = 'arcade-row-info';
 
       const title = document.createElement('div');
-      title.style.cssText =
-        'font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;';
+      title.className = 'arcade-row-title';
       title.textContent = game.title;
 
       const meta = document.createElement('div');
-      meta.style.cssText =
-        'font-size: 0.8rem; color: var(--text-muted); display: flex; gap: 0.5rem; align-items: center;';
+      meta.className = 'arcade-row-meta';
 
       const author = document.createElement('span');
       author.textContent = `@${game.username}`;
@@ -926,8 +620,7 @@ export class ExplorePage {
 
     if (this.userSuggestions.length === 0) {
       const msg = document.createElement('div');
-      msg.style.cssText =
-        "text-align: center; padding: 3rem; color: var(--text-muted); font-family: 'Noto Sans', monospace, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;";
+      msg.className = 'search-empty';
       msg.textContent = t('explore.no_users');
       postsContainer.appendChild(msg);
       return;
@@ -935,51 +628,29 @@ export class ExplorePage {
 
     this.userSuggestions.forEach((user) => {
       const item = document.createElement('div');
-      item.style.cssText = `
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        padding: 0.75rem;
-        border-radius: 0.25rem;
-        cursor: pointer;
-        transition: background-color 0.2s ease;
-      `;
-      item.addEventListener('mouseenter', () => {
-        item.style.background = 'var(--bg-secondary)';
-      });
-      item.addEventListener('mouseleave', () => {
-        item.style.background = 'transparent';
-      });
+      item.className = 'search-user-row';
       item.onclick = () => {
         window.history.pushState({ username: user.username }, '', `/profile/${user.username}`);
         window.dispatchEvent(new CustomEvent('spaNavigate', { detail: { view: 'profile', username: user.username } }));
       };
 
       const avatar = document.createElement('div');
-      avatar.style.cssText = `
-        width: 40px; height: 40px; border-radius: 50%;
-        background: ${user.avatar_key ? `url('/api/images/${user.avatar_key}')` : 'var(--accent)'};
-        background-size: cover;
-        background-position: center;
-        color: var(--bg-primary);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: bold;
-        font-size: 0.875rem;
-        flex-shrink: 0;
-      `;
+      avatar.className = 'search-user-avatar';
+      if (user.avatar_key) {
+        avatar.style.backgroundImage = `url('/api/images/${user.avatar_key}')`;
+      }
       if (!user.avatar_key) {
         avatar.textContent = user.display_name?.[0]?.toUpperCase() || user.username[0].toUpperCase();
       }
       attachPlusBadge(avatar, user.badge_type);
 
       const userInfo = document.createElement('div');
+      userInfo.className = 'search-user-info';
       const usernameEl = document.createElement('div');
-      usernameEl.style.cssText = 'font-weight: 600; color: var(--text-primary);';
+      usernameEl.className = 'search-user-name';
       usernameEl.textContent = `@${user.username}`;
       const displayNameEl = document.createElement('div');
-      displayNameEl.style.cssText = 'font-size: 0.875rem; color: var(--text-muted);';
+      displayNameEl.className = 'search-user-display';
       displayNameEl.textContent = user.display_name || '';
 
       userInfo.appendChild(usernameEl);
@@ -1007,21 +678,21 @@ export class ExplorePage {
       loadingElement.style.display = 'block';
       loadingElement.innerHTML = '';
       const wrapper = document.createElement('div');
-      wrapper.style.cssText =
-        "text-align: center; padding: 2rem; color: var(--text-muted); font-family: 'Noto Sans', monospace, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;";
+      wrapper.className = 'explore-end';
 
-      const icon = document.createElement('div');
-      icon.style.cssText = 'font-size: 1.5rem; margin-bottom: 0.5rem;';
-      icon.textContent = t('explore.end_icon');
+      const endIcon = document.createElement('div');
+      endIcon.className = 'explore-end-icon';
+      endIcon.textContent = t('explore.end_icon');
 
       const title = document.createElement('div');
+      title.className = 'explore-end-title';
       title.textContent = t('explore.end_message');
 
       const subtitle = document.createElement('div');
-      subtitle.style.cssText = 'font-size: 0.875rem; margin-top: 0.5rem;';
+      subtitle.className = 'explore-end-subtitle';
       subtitle.textContent = t('explore.end_subtitle', { tag: this.props.tag ?? '' });
 
-      wrapper.appendChild(icon);
+      wrapper.appendChild(endIcon);
       wrapper.appendChild(title);
       wrapper.appendChild(subtitle);
       loadingElement.appendChild(wrapper);
@@ -1035,26 +706,25 @@ export class ExplorePage {
       loadingElement.innerHTML = '';
 
       const wrapper = document.createElement('div');
-      wrapper.style.cssText =
-        "text-align: center; padding: 2rem; color: var(--text-muted); font-family: 'Noto Sans', monospace, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;";
+      wrapper.className = 'explore-end';
 
-      const icon = document.createElement('div');
-      icon.style.cssText = 'font-size: 1.5rem; margin-bottom: 0.5rem;';
-      icon.textContent = '⚠️';
+      const errIcon = document.createElement('div');
+      errIcon.className = 'explore-end-icon';
+      errIcon.textContent = '⚠️';
 
       const title = document.createElement('div');
+      title.className = 'explore-end-title';
       title.textContent = t('explore.load_error');
 
       const retryBtn = document.createElement('button');
+      retryBtn.className = 'explore-retry-btn';
       retryBtn.textContent = t('common.retry');
-      retryBtn.style.cssText =
-        'margin-top: 1rem; padding: 0.5rem 1rem; background: var(--accent); color: white; border: none; border-radius: 4px; cursor: pointer; font-family: inherit;';
       retryBtn.addEventListener('click', () => {
         loadingElement.style.display = 'none';
         void this.loadMorePosts();
       });
 
-      wrapper.appendChild(icon);
+      wrapper.appendChild(errIcon);
       wrapper.appendChild(title);
       wrapper.appendChild(retryBtn);
       loadingElement.appendChild(wrapper);
@@ -1089,6 +759,8 @@ export class ExplorePage {
   }
 
   public destroy(): void {
+    this.constellation?.destroy();
+    this.constellation = undefined;
     if (this.postUpdatedHandler) {
       window.removeEventListener('postUpdated', this.postUpdatedHandler);
     }
